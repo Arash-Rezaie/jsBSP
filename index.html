@@ -3,8 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <title>Binary Space Partitioning Sample</title>
+    <style>
+
+        .bspLayoutManager {
+            --bsp-bg-color: #ebebeb;
+            --bsp-border-color: #bbbbbb;
+            --bsp-header-bg-color: #bdbdbd;
+            --bsp-frame-header-height: 30px;
+            --bsp-frame-margin: 2px;
+
+            background: var(--bsp-bg-color);
+            border: var(--bsp-border-color) solid 1px;
+            border-radius: 5px;
+        }
+
+        .bspLayoutManager .frame {
+            margin: var(--bsp-frame-margin);
+        }
+
+        .bspLayoutManager .frame .header {
+            background: var(--bsp-header-bg-color);
+            border: var(--bsp-border-color) solid 1px;
+            border-bottom: none;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+            min-height: var(--bsp-frame-header-height);
+            max-height: var(--bsp-frame-header-height);
+            padding: 1px;
+        }
+
+        .bspLayoutManager .frame .body {
+            border: var(--bsp-border-color) solid 1px;
+            border-top: none;
+            border-bottom-left-radius: 5px;
+            border-bottom-right-radius: 5px;
+            padding: 3px;
+            position: absolute;
+            top: calc(var(--bsp-frame-margin) + var(--bsp-frame-header-height));
+            bottom: var(--bsp-frame-margin);
+            left: var(--bsp-frame-margin);
+            right: var(--bsp-frame-margin);
+        }
+
+        .grabbing {
+            cursor: move;
+        }
+    </style>
 </head>
 <body>
-
+<div class="bspLayoutManager" style="width: 80%; height: 80%; position: fixed; top: 20px; left: 20px">
+    <div class="frame">
+        <div class="header">
+            <svg width="11px" height="20px" class="grabbing">
+                <path stroke="#3A3A3A" stroke-width="1px" d=" m1 0 l-1 1 m0 3 l4 -4 m3 0 l-7 7 m0 3 l10 -10"/>
+            </svg>
+        </div>
+        <div class="body">
+            body
+        </div>
+    </div>
+</div>
 </body>
 </html>
