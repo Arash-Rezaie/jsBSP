@@ -1,54 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
     <title>Binary Space Partitioning Sample</title>
-    <style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="Arash Rezaie">
+    <meta name="generator" content="Jekyll v4.1.1">
 
-        .bspLayoutManager {
-            --bsp-bg-color: #ebebeb;
-            --bsp-border-color: #bbbbbb;
-            --bsp-header-bg-color: #bdbdbd;
-            --bsp-frame-margin: 2px;
+    <link href="styles/bsp-styles.css" type="text/css" rel="stylesheet">
+    <link href="styles/dd.css" type="text/css" rel="stylesheet">
 
-            background: var(--bsp-bg-color);
-            border: var(--bsp-border-color) solid 1px;
-            border-radius: 5px;
-        }
+    <script type="text/javascript" src="scripts/jquery-3.5.1.min.js"></script>
+    <script type="text/javascript" src="scripts/jquery.dd.min.js"></script>
+    <script type="text/javascript" src="scripts/bsp-scripts.js"></script>
 
-        .bspLayoutManager .frame {
-            margin: var(--bsp-frame-margin);
-            display: flex;
-            flex-flow: column;
-            height: 100%;
-        }
-
-        .bspLayoutManager .frame .body {
-            border: var(--bsp-border-color) solid 1px;
-            border-top: none;
-            border-bottom-left-radius: 5px;
-            border-bottom-right-radius: 5px;
-            padding: 3px;
-            overflow: auto;
-            margin-bottom: calc(2 * var(--bsp-frame-margin));
-            flex-grow: 1;
-
-        }
-
-        .bspLayoutManager .frame .header {
-            background: var(--bsp-header-bg-color);
-            border: var(--bsp-border-color) solid 1px;
-            border-bottom: none;
-            border-top-left-radius: 5px;
-            border-top-right-radius: 5px;
-            min-height: 30px;
-            padding: 1px;
-        }
-
-        .grabbing {
-            cursor: move;
-        }
-    </style>
 </head>
 <body>
 <div class="bspLayoutManager" style="width: 80%; height: 80%; position: fixed; top: 20px; left: 20px">
@@ -57,6 +23,14 @@
             <svg width="11px" height="20px" class="grabbing">
                 <path stroke="#3A3A3A" stroke-width="1px" d=" m1 0 l-1 1 m0 3 l4 -4 m3 0 l-7 7 m0 3 l10 -10"/>
             </svg>
+            <select class="icon-dropdown" id="layer-selector" <!--data-usesprite="smallIcons"-->>
+                <option value="select-layer" selected data-image="images/select-layer.png"
+                        data-imagecss="small-icon"></option>
+                <option value="chart" data-image="images/chart.png" data-imagecss="small-icon"></option>
+                <option value="orders" data-image="images/orders.png" data-imagecss="small-icon"></option>
+                <option value="profit" data-image="images/profit.png" data-imagecss="small-icon"></option>
+                <option value="script" data-image="images/script.png" data-imagecss="small-icon"></option>
+            </select>
         </div>
         <div class="body">
 

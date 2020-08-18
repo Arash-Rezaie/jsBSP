@@ -1,0 +1,59 @@
+.bspLayoutManager {
+    --bsp-bg-color: #ebebeb;
+    --bsp-border-color: #bbbbbb;
+    --bsp-header-bg-color: #bdbdbd;
+    --bsp-frame-margin: 2px;
+
+    background: var(--bsp-bg-color);
+    border: var(--bsp-border-color) solid 1px;
+    border-radius: 5px;
+}
+
+.bspLayoutManager .frame {
+    margin: var(--bsp-frame-margin);
+    display: flex;
+    flex-flow: column;
+    height: 100%;
+}
+
+.bspLayoutManager .frame .header {
+    background: var(--bsp-header-bg-color);
+    border: var(--bsp-border-color) solid 1px;
+    border-bottom: none;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    min-height: 30px;
+    padding: 1px;
+}
+
+.bspLayoutManager .frame .body {
+    border: var(--bsp-border-color) solid 1px;
+    border-top: none;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    padding: 3px;
+    overflow: auto;
+    margin-bottom: calc(2 * var(--bsp-frame-margin));
+    flex-grow: 1;
+}
+
+.grabbing {
+    cursor: move;
+}
+
+#layer-selector{
+    min-width: 60px;
+    height: 10px;
+}
+
+#layer-selector option{
+    min-width: 60px;
+}
+
+.small-icon {
+    float: left;
+    padding: 0 !important;
+    margin: 0 5px 0 0;
+    width: 20px;
+    height: 20px;
+}
