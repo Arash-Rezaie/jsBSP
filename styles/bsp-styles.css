@@ -1,59 +1,78 @@
 .bspLayoutManager {
-    --bsp-bg-color: #ebebeb;
-    --bsp-border-color: #bbbbbb;
-    --bsp-header-bg-color: #bdbdbd;
-    --bsp-frame-margin: 2px;
+    --bsp-bg-color: #bdbdbd;
+    --bsp-border-color: #9a9a9a;
+    --bsp-frame-bg-color: #ebebeb;
+    --bsp-frame-gap: 2px;
 
-    background: var(--bsp-bg-color);
-    border: var(--bsp-border-color) solid 1px;
+    background: var(--bsp-frame-bg-color);
+    border: #e27d05 solid 1px;
     border-radius: 5px;
 }
 
 .bspLayoutManager .frame {
-    margin: var(--bsp-frame-margin);
-    display: flex;
-    flex-flow: column;
+    position: absolute;
+    background: var(--bsp-bg-color);
+    margin: var(--bsp-frame-gap);
+    border: var(--bsp-border-color) solid 1px;
+    border-radius: 5px;
+    display: block;
+    width: 100%;
     height: 100%;
 }
 
-.bspLayoutManager .frame .header {
-    background: var(--bsp-header-bg-color);
-    border: var(--bsp-border-color) solid 1px;
-    border-bottom: none;
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
-    min-height: 30px;
-    padding: 1px;
-}
-
-.bspLayoutManager .frame .body {
-    border: var(--bsp-border-color) solid 1px;
-    border-top: none;
-    border-bottom-left-radius: 5px;
-    border-bottom-right-radius: 5px;
-    padding: 3px;
-    overflow: auto;
-    margin-bottom: calc(2 * var(--bsp-frame-margin));
-    flex-grow: 1;
-}
-
-.grabbing {
+.bspLayoutManager .frame svg#handler {
     cursor: move;
 }
-
-#layer-selector{
-    min-width: 60px;
-    height: 10px;
+.bspLayoutManager .frame-container {
+    position: absolute;
+    top: var(--bsp-frame-gap);
+    left: var(--bsp-frame-gap);
+    width: calc(100% - 5 * var(--bsp-frame-gap));
+    height: calc(100% - 5 * var(--bsp-frame-gap));
 }
 
-#layer-selector option{
-    min-width: 60px;
+.bspLayoutManager .frame-container .frame .container {
+    position: absolute;
+    background: var(--bsp-frame-bg-color);
+    border: var(--bsp-border-color) solid 1px;
+    border-radius: 5px;
+    top: calc(2 * var(--bsp-frame-gap));
+    left: calc(2 * var(--bsp-frame-gap));
+    width: calc(100% - 5 * var(--bsp-frame-gap));
+    height: calc(100% - 5 * var(--bsp-frame-gap));
+
+    overflow: auto;
+    /* Hide scrollbar for IE, Edge and Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
 }
 
-.small-icon {
-    float: left;
-    padding: 0 !important;
-    margin: 0 5px 0 0;
-    width: 20px;
-    height: 20px;
+/* Hide scrollbar for Chrome, Safari and Opera */
+.bspLayoutManager .frame-container .frame .container::-webkit-scrollbar {
+    display: none;
+}
+
+.center-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    -moz-transform: translateX(-50%) translateY(-50%);
+    -webkit-transform: translateX(-50%) translateY(-50%);
+    transform: translateX(-50%) translateY(-50%);
+}
+
+.center-content-vertically {
+    position: absolute;
+    top: 50%;
+    -moz-transform: translateY(-50%);
+    -webkit-transform: translateY(-50%);
+    transform: translateY(-50%);
+}
+
+.center-content-horizontally {
+    position: absolute;
+    left: 50%;
+    -moz-transform: translateX(-50%);
+    -webkit-transform: translateX(-50%);
+    transform: translateX(-50%);
 }
