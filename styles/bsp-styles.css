@@ -2,11 +2,14 @@
     --bsp-bg-color: #bdbdbd;
     --bsp-border-color: #9a9a9a;
     --bsp-frame-bg-color: #ebebeb;
-    --bsp-frame-gap: 2px;
+    --bsp-frame-gap: 1px;
 
     background: var(--bsp-frame-bg-color);
     border: #e27d05 solid 1px;
     border-radius: 5px;
+    position: absolute;
+    width: 100%;
+    height: 100%;
 }
 
 .bspLayoutManager .frame {
@@ -16,19 +19,15 @@
     border: var(--bsp-border-color) solid 1px;
     border-radius: 5px;
     display: block;
-    width: 100%;
-    height: 100%;
+
 }
 
-.bspLayoutManager .frame svg#handler {
-    cursor: move;
-}
 .bspLayoutManager .frame-container {
     position: absolute;
     top: var(--bsp-frame-gap);
     left: var(--bsp-frame-gap);
-    width: calc(100% - 5 * var(--bsp-frame-gap));
-    height: calc(100% - 5 * var(--bsp-frame-gap));
+    width: calc(100% - 2 * var(--bsp-frame-gap));
+    height: calc(100% - 2 * var(--bsp-frame-gap));
 }
 
 .bspLayoutManager .frame-container .frame .container {
@@ -36,10 +35,10 @@
     background: var(--bsp-frame-bg-color);
     border: var(--bsp-border-color) solid 1px;
     border-radius: 5px;
-    top: calc(2 * var(--bsp-frame-gap));
-    left: calc(2 * var(--bsp-frame-gap));
-    width: calc(100% - 5 * var(--bsp-frame-gap));
-    height: calc(100% - 5 * var(--bsp-frame-gap));
+    top: var(--bsp-frame-gap);
+    left: var(--bsp-frame-gap);
+    width: calc(100% - 4 * var(--bsp-frame-gap));
+    height: calc(100% - 4 * var(--bsp-frame-gap));
 
     overflow: auto;
     /* Hide scrollbar for IE, Edge and Firefox */
@@ -47,9 +46,33 @@
     scrollbar-width: none; /* Firefox */
 }
 
+.bspLayoutManager .frame-container .frame .container.empty {
+    background: url("../images/empty.9.png") no-repeat center;
+}
+
+.bspLayoutManager .frame-container .frame .footer {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+
+}
+
+.invisible {
+    display: none;
+}
+
+
 /* Hide scrollbar for Chrome, Safari and Opera */
 .bspLayoutManager .frame-container .frame .container::-webkit-scrollbar {
     display: none;
+}
+
+.fillView {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    top: 0px;
+    left: 0px;
 }
 
 .center-content {
@@ -75,4 +98,8 @@
     -moz-transform: translateX(-50%);
     -webkit-transform: translateX(-50%);
     transform: translateX(-50%);
+}
+
+span {
+    font-size: 8px;
 }

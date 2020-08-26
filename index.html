@@ -7,30 +7,14 @@
     <meta name="description" content="">
     <meta name="author" content="Arash Rezaie">
 
-    <script type="text/javascript" src="scripts/bsp-scripts.js"></script>
+    <script type="text/javascript" src="scripts/js-pure-bsp/bsp-scripts.js"></script>
     <!--main styles-->
     <link type="text/css" rel="stylesheet" href="styles/bsp-styles.css">
 
 </head>
 <body>
-<div class="bspLayoutManager" style="width: 80%; height: 80%; position: fixed; top: 20px; left: 20px">
-    <div class="frame-container">
-        <div class="frame">
-            <svg width="11px" height="20px" id="handler"
-                 onmousedown="onFrmMouseDownHandler(bspEvents.setSrc(this))"
-                 oncontextmenu="return onFrmCtxHandler(bspEvents.setSrc(this));">
-                <path stroke="#3A3A3A" stroke-width="1px" d=" m1 0 l-1 1 m0 3 l4 -4 m3 0 l-7 7 m0 3 l10 -10"/>
-            </svg>
-            <div class="container">
-                <div class="center-content">
-                    <div>
-                        <img src="images/empty.png" style="width: 100px;height: 100px">
-                        <span style="display: block;text-align: center">Empty</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<div>
+    <div class="bspLayoutManager"/>
 </div>
 </body>
 </html>
