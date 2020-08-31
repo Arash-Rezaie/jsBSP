@@ -12,22 +12,54 @@
     height: 100%;
 }
 
-.bspLayoutManager .frame {
-    position: absolute;
-    background: var(--bsp-bg-color);
-    margin: var(--bsp-frame-gap);
-    border: var(--bsp-border-color) solid 1px;
-    border-radius: 5px;
-    display: block;
-
-}
-
 .bspLayoutManager .frame-container {
     position: absolute;
     top: var(--bsp-frame-gap);
     left: var(--bsp-frame-gap);
     width: calc(100% - 2 * var(--bsp-frame-gap));
     height: calc(100% - 2 * var(--bsp-frame-gap));
+    z-index: 1;
+}
+
+.bspLayoutManager .frame-container .frame {
+    position: absolute;
+    background: var(--bsp-bg-color);
+    margin: var(--bsp-frame-gap);
+    border: var(--bsp-border-color) solid 1px;
+    border-radius: 5px;
+    display: block;
+}
+
+.bspLayoutManager .frame-container .frame::before {
+    content: "";
+    position: absolute;
+    width: calc(100% - 26px);
+    height: calc(100% + 2px);
+    top: -1px;
+    left: 13px;
+    cursor: row-resize;
+    z-index: 1;
+}
+
+.bspLayoutManager .frame-container .frame::after {
+    content: "";
+    position: absolute;
+    height: calc(100% - 26px);
+    width: calc(100% + 2px);
+    top: 13px;
+    left: -1px;
+    cursor: col-resize;
+    z-index: 1;
+}
+
+.bspLayoutManager .frame-container .frame .handler {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    left: -1px;
+    top: -1px;
+    cursor: crosshair;
+    z-index: 10;
 }
 
 .bspLayoutManager .frame-container .frame .container {
@@ -39,6 +71,7 @@
     left: var(--bsp-frame-gap);
     width: calc(100% - 4 * var(--bsp-frame-gap));
     height: calc(100% - 4 * var(--bsp-frame-gap));
+    z-index: 3;
 
     overflow: auto;
     /* Hide scrollbar for IE, Edge and Firefox */
@@ -48,13 +81,68 @@
 
 .bspLayoutManager .frame-container .frame .container.empty {
     background: url("../images/empty.9.png") no-repeat center;
+    background-size: auto;
 }
 
 .bspLayoutManager .frame-container .frame .footer {
     position: absolute;
     width: 100%;
     height: 100%;
+    z-index: 4;
+}
 
+.bspLayoutManager .frame-container .frame .footer .merge-arrow {
+    width: 100%;
+    height: 100%;
+    background: #1377c514;
+}
+
+.bspLayoutManager .frame-container .frame .footer .merge-arrow img {
+    width: 20%;
+    height: 20%;
+    max-width: 100px;
+    max-height: 100px;
+}
+
+.bspLayoutManager .frame-container .frame .footer .merge-arrow {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #1377c514;
+}
+
+.bspLayoutManager .frame-container .frame .footer .merge-arrow img.up-arrow {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    -moz-transform: translateX(-50%) translateY(-100%);
+    -webkit-transform: translateX(-50%) translateY(-100%);
+    transform: translateX(-50%) translateY(-100%);
+}
+
+.bspLayoutManager .frame-container .frame .footer .merge-arrow img.down-arrow {
+    position: absolute;
+    left: 50%;
+    -moz-transform: translateX(-50%);
+    -webkit-transform: translateX(-50%);
+    transform: translateX(-50%);
+}
+
+.bspLayoutManager .frame-container .frame .footer .merge-arrow img.right-arrow {
+    position: absolute;
+    top: 50%;
+    -moz-transform: translateY(-50%);
+    -webkit-transform: translateY(-50%);
+    transform: translateY(-50%);
+}
+
+.bspLayoutManager .frame-container .frame .footer .merge-arrow img.left-arrow {
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    -moz-transform: translateX(-100%) translateY(-50%);
+    -webkit-transform: translateX(-100%) translateY(-50%);
+    transform: translateX(-100%) translateY(-50%);
 }
 
 .invisible {
@@ -100,6 +188,3 @@
     transform: translateX(-50%);
 }
 
-span {
-    font-size: 8px;
-}

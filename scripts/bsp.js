@@ -1,6 +1,7 @@
 cssInteriorGap = 1;
 triggerGap = 40;
-frmGap = 2;
+frmGap = 1;
+dFrmGap = 2 * frmGap;
 bspLayouts = Array();
 
 function findNearestNode(lookUpside, startElm, checker) {
@@ -11,7 +12,7 @@ function findNearestNode(lookUpside, startElm, checker) {
             return tmp;
         } else if (lookUpside === false) {//search downside
             let kids = tmp.children;
-            for (let k in kids) {
+            for (let k = kids.length - 1; k >= 0; k--) {
                 let res = checker(kids[k]) ? kids[k] : findNearestNode(lookUpside, kids[k], checker);
                 if (res != null) {
                     return res;
@@ -19,7 +20,7 @@ function findNearestNode(lookUpside, startElm, checker) {
             }
         }
     } catch (e) {
-
+        console.log(e);
     }
     return null;
 }
@@ -39,9 +40,46 @@ function addClassStyle(element, clsName) {
     }
 }
 
+function modifyAttributes(element, attributes) {
+    if (typeof (attributes) == 'string')
+        attributes = [attributes];
+    let s = element.attributes.style.nodeValue;
+    s = s.trim();
+    if (!s.endsWith(';'))
+        s = s + ';';
+    for (let i = attributes.length - 1; i >= 0; i--) {
+        let k = attributes[i].split(':');
+        k[0] = k[0].trim();
+        k[1] = k[1].trim();
+        if (!k[1].endsWith(';'))
+            k[1] += ';';
+        delete attributes[i];
+        let s2 = s.replace(new RegExp('\\b' + k[0] + ':.+?;'), k[0] + ':' + k[1]);
+        if (s2 === s) {
+            s2 += k[0] + ':' + k[1];
+        }
+        s = s2;
+    }
+    element.attributes.style.nodeValue = s;
+}
+
+function removeAttributes(element, attributes) {
+    if (typeof (attributes) == 'string')
+        attributes = [attributes];
+    let s = element.attributes.style.nodeValue;
+    s = s.trim();
+    if (!s.endsWith(';'))
+        s = s + ';';
+    for (let i = attributes.length - 1; i >= 0; i--) {
+        let k = attributes[i].split(':')[0].trim();
+        s = s.replace(new RegExp('\\b' + k[0] + ':.+?;'), '');
+    }
+    element.attributes.style.nodeValue = s;
+}
+
 class EventBroadcaster {
     static bspEvents = document.createEvent("MouseEvent");
-    static activeMouseEventHandler;
+    static activeMouseEventController;
     static activeLayoutManager;
 
     static initEventBroadcaster() {
@@ -51,13 +89,7 @@ class EventBroadcaster {
 
     static createEventBroadcaster() {
         EventBroadcaster.bspEvents.initEvent('bsp.events', true, true);
-        EventBroadcaster.bspEvents.setSrc = function (elm) {
-            this.eventSource = elm;
-            return this;
-        };
-        EventBroadcaster.bspEvents.getSrc = function () {
-            return this.eventSource;
-        };
+        //
     }
 
     static initBspLayouts() {
@@ -65,44 +97,85 @@ class EventBroadcaster {
         for (let i = 0; i < views.length; i++) {
             let lm = new LayoutManager(views[i]);
 
-            lm.insertFrame(new Frame().setAll(0, lm.frmContainerElm.clientWidth - 4 * cssInteriorGap, lm.frmContainerElm.clientHeight - 4 * cssInteriorGap, 0));
+            let frame = new Frame().setAll(0, lm.frmContainerElm.clientWidth - 4 * cssInteriorGap, lm.frmContainerElm.clientHeight - 4 * cssInteriorGap, 0);
+            lm.insertFrame(frame);
             bspLayouts[lm.id] = lm;
         }
     }
 
+    static registerMouseDownEventForFrameBorder(frame) {
+        frame.element.addEventListener('mousedown', EventBroadcaster.onFrmMouseDownController, false);
+    }
+
+    static unregisterMouseDownEventForFrameBorder(frame) {
+        frame.element.removeEventListener('mousedown', EventBroadcaster.onFrmMouseDownController, false);
+    }
+
     static registerMouseMoveEvent() {
-        document.addEventListener('mousemove', EventBroadcaster.onFrmMouseMoveHandler, true);
-        document.addEventListener('mouseup', EventBroadcaster.onFrmMouseUpHandler, true);
+        document.addEventListener('mousemove', EventBroadcaster.onFrmMouseMoveController, true);
+        document.addEventListener('mouseup', EventBroadcaster.onFrmMouseUpController, true);
     }
 
     static unregisterMouseMoveEvent() {
-        document.removeEventListener('mousemove', EventBroadcaster.onFrmMouseMoveHandler, true);
-        document.removeEventListener('mouseup', EventBroadcaster.onFrmMouseUpHandler, true);
+        document.removeEventListener('mousemove', EventBroadcaster.onFrmMouseMoveController, true);
+        document.removeEventListener('mouseup', EventBroadcaster.onFrmMouseUpController, true);
     }
 
     static cleanUp() {
-        EventBroadcaster.activeMouseEventHandler = null;
+        EventBroadcaster.activeMouseEventController = null;
         EventBroadcaster.unregisterMouseMoveEvent();
         setCursor('auto');
     }
 
-    static onFrmMouseDownHandler(e) {
+    static loadTargetLayoutManager(e) {
+        let temp = findNearestNode(true, e.target, elm => elm.className === 'bspLayoutManager');
+        EventBroadcaster.activeLayoutManager = bspLayouts[temp.id];
+    }
+
+    static onFrmMouseDownController(e) {
         try {
-            e.preventDefault ? e.preventDefault() : e.returnValue = false;
-
-            let temp = findNearestNode(true, e.getSrc(), elm => elm.className === 'bspLayoutManager');
-            EventBroadcaster.activeLayoutManager = bspLayouts[temp.id];
-
-            temp = findNearestNode(true, e.getSrc(), elm => elm.className === 'frame');
-            EventBroadcaster.activeMouseEventHandler = new FrmCornerHandler(EventBroadcaster.activeLayoutManager.frames[temp.id]);
-
-            EventBroadcaster.registerMouseMoveEvent();
+            if (e.target.className === 'frame') {
+                EventBroadcaster.onFrmBorderMouseDownController(e);
+            } else if (e.target.className === 'handler') {
+                EventBroadcaster.onFrmIndicatorMouseDownController(e);
+            }
         } catch (ex) {
+            console.log(ex);
             EventBroadcaster.cleanUp();
         }
     }
 
-    static onFrmMouseMoveHandler(e) {
+    static onFrmIndicatorMouseDownController(e) {
+        e.preventDefault ? e.preventDefault() : e.returnValue = false;
+        EventBroadcaster.loadTargetLayoutManager(e);
+        let frm = findNearestNode(true, e.target, elm => elm.className === 'frame');
+        EventBroadcaster.activeMouseEventController = new FrmCornerController(EventBroadcaster.activeLayoutManager.frames[frm.id]);
+        EventBroadcaster.registerMouseMoveEvent();
+    }
+
+    static onFrmBorderMouseDownController(e) {
+        if (e.offsetX <= 0) {
+            this.#initBorderController(e, 'left');
+        } else if (e.offsetY <= 0) {
+            this.#initBorderController(e, 'top');
+        } else if (e.offsetX >= e.currentTarget.clientWidth - 1) {
+            this.#initBorderController(e, 'right');
+        } else if (e.offsetY >= e.currentTarget.clientHeight - 1) {
+            this.#initBorderController(e, 'bottom');
+        }
+    }
+
+    static #initBorderController(e, edge) {
+        if (e.clientX > triggerGap && e.clientX < EventBroadcaster.activeLayoutManager.right - triggerGap &&
+            e.clientY > triggerGap && e.clientY < EventBroadcaster.activeLayoutManager.bottom - triggerGap) {
+            e.preventDefault ? e.preventDefault() : e.returnValue = false;
+            EventBroadcaster.loadTargetLayoutManager(e);
+            EventBroadcaster.activeMouseEventController = new FrmBorderController(EventBroadcaster.activeLayoutManager.frames[e.target.id], edge);
+            EventBroadcaster.registerMouseMoveEvent();
+        }
+    }
+
+    static onFrmMouseMoveController(e) {
         try {
             e.preventDefault ? e.preventDefault() : e.returnValue = false;
             let rect = EventBroadcaster.activeLayoutManager.element.getBoundingClientRect();
@@ -110,17 +183,18 @@ class EventBroadcaster {
             let y = e.clientY - rect.top;
             if (x < 0 || y < 0)
                 throw  'out of context';
-            EventBroadcaster.activeMouseEventHandler.next(x, y);
+            EventBroadcaster.activeMouseEventController.next(x, y);
         } catch (ex) {
+            EventBroadcaster.activeMouseEventController.error(ex);
             console.log(ex);
             EventBroadcaster.cleanUp();
         }
     }
 
-    static onFrmMouseUpHandler(e) {
+    static onFrmMouseUpController(e) {
         try {
             e.preventDefault ? e.preventDefault() : e.returnValue = false;
-            EventBroadcaster.activeMouseEventHandler.complete();
+            EventBroadcaster.activeMouseEventController.complete();
         } catch (ex) {
             console.log(ex);
         } finally {
@@ -128,7 +202,17 @@ class EventBroadcaster {
         }
     }
 
-    static onFrmCtxHandler(e) {
+    static onFrmCtxController(e) {
+    }
+
+    static fireEvent(element, type) {
+        if (element.fireEvent) {
+            element.fireEvent('on' + type);
+        } else {
+            let eventObj = document.createEvent('Events');
+            eventObj.initEvent(type, true, false);
+            element.dispatchEvent(eventObj);
+        }
     }
 }
 
@@ -242,6 +326,198 @@ class Container {
     }
 }
 
+class EdgeTransporter {
+    min = -1;
+    max = Infinity;
+    effectiveEdges = [];
+    frame;
+    identifiedNeighbours;
+    transporterType;
+
+    constructor(frame, identifiedNeighbours = null) {
+        this.frame = frame;
+        this.identifiedNeighbours = identifiedNeighbours;
+        if (this.identifiedNeighbours == null) {
+            this.identifiedNeighbours = [];
+            this.identifiedNeighbours[frame.id] = frame;
+        }
+        this.transporterType = this.getTransporterType();
+        this.#loadNeighbours();
+    }
+
+    set(value) {
+        if (value >= this.min && value <= this.max) {
+            this.update(value);
+            this.updateNeighbours(value);
+            return true;
+        }
+        return false;
+    }
+
+    updateNeighbours(value) {
+        for (let i = this.effectiveEdges.length - 1; i >= 0; i--) {
+            this.effectiveEdges[i].set(this.getNeighbourValue(value));
+        }
+    }
+
+    #loadNeighbours() {
+        let f = EventBroadcaster.activeLayoutManager.frames;
+        this.loadMinOrMax();
+        for (let k in f) {
+            if (this.identifiedNeighbours[k] == null) {
+                if (this.isNeighbour(f[k])) {
+                    this.identifiedNeighbours[k] = f[k];
+                    let oppositeEdgeTransporter = new this.transporterType(f[k], this.identifiedNeighbours);
+                    this.effectiveEdges.push(oppositeEdgeTransporter);
+
+                    if (oppositeEdgeTransporter.min > this.min)
+                        this.min = oppositeEdgeTransporter.min;
+
+                    if (oppositeEdgeTransporter.max < this.max)
+                        this.max = oppositeEdgeTransporter.max;
+                }
+            }
+        }
+        this.min += dFrmGap;
+        this.max -= dFrmGap;
+    }
+
+    update(value) {
+    }
+
+    isNeighbour(frame) {
+    }
+
+    getTransporterType() {
+    }
+
+    getNeighbourValue(value) {
+    }
+
+    loadMinOrMax() {
+    }
+}
+
+class TopEdgeTransporter extends EdgeTransporter {
+    constructor(frame, lastTransporter) {
+        super(frame, lastTransporter);
+    }
+
+    update(value) {
+        this.frame.setTop(value);
+    }
+
+    getTransporterType() {
+        return BottomEdgeTransporter;
+    }
+
+    isNeighbour(frame) {
+        return frame.bottom <= this.frame.top && frame.bottom >= this.frame.top - triggerGap &&
+            (
+                (frame.left >= this.frame.left - frmGap && frame.left <= this.frame.right + frmGap) ||
+                (frame.right >= this.frame.left - frmGap && frame.right <= this.frame.right + frmGap)
+            );
+    }
+
+    getNeighbourValue(value) {
+        return value - dFrmGap;
+    }
+
+    loadMinOrMax() {
+        this.max = this.frame.bottom - triggerGap;
+    }
+}
+
+class BottomEdgeTransporter extends EdgeTransporter {
+    constructor(frame, lastTransporter) {
+        super(frame, lastTransporter);
+    }
+
+    update(value) {
+        this.frame.setBottom(value);
+    }
+
+    getTransporterType() {
+        return TopEdgeTransporter;
+    }
+
+    isNeighbour(frame) {
+        return frame.top >= this.frame.bottom && frame.top <= this.frame.bottom + triggerGap &&
+            (
+                (frame.left >= this.frame.left - frmGap && frame.left <= this.frame.right + frmGap) ||
+                (frame.right >= this.frame.left - frmGap && frame.right <= this.frame.right + frmGap)
+            );
+    }
+
+    getNeighbourValue(value) {
+        return value + dFrmGap;
+    }
+
+    loadMinOrMax() {
+        this.min = this.frame.top + triggerGap;
+    }
+}
+
+class LeftEdgeTransporter extends EdgeTransporter {
+    constructor(frame, lastTransporter) {
+        super(frame, lastTransporter);
+    }
+
+    update(value) {
+        this.frame.setLeft(value);
+    }
+
+    getTransporterType() {
+        return RightEdgeTransporter;
+    }
+
+    isNeighbour(frame) {
+        return frame.right <= this.frame.left && frame.right >= this.frame.left - triggerGap &&
+            (
+                (frame.top <= this.frame.bottom + frmGap && frame.top >= this.frame.top - frmGap) ||
+                (frame.bottom <= this.frame.bottom + frmGap && frame.bottom >= this.frame.top - frmGap)
+            );
+    }
+
+    getNeighbourValue(value) {
+        return value - dFrmGap;
+    }
+
+    loadMinOrMax() {
+        this.max = this.frame.right - triggerGap;
+    }
+}
+
+class RightEdgeTransporter extends EdgeTransporter {
+    constructor(frame, lastTransporter) {
+        super(frame, lastTransporter);
+    }
+
+    update(value) {
+        this.frame.setRight(value);
+    }
+
+    getTransporterType() {
+        return LeftEdgeTransporter;
+    }
+
+    isNeighbour(frame) {
+        return frame.left >= this.frame.right && frame.left <= this.frame.right + triggerGap &&
+            (
+                (frame.top <= this.frame.bottom + frmGap && frame.top >= this.frame.top - frmGap) ||
+                (frame.bottom <= this.frame.bottom + frmGap && frame.bottom >= this.frame.top - frmGap)
+            );
+    }
+
+    getNeighbourValue(value) {
+        return value + dFrmGap;
+    }
+
+    loadMinOrMax() {
+        this.min = this.frame.left + triggerGap;
+    }
+}
+
 class LayoutManager extends Container {
     frames = [];
     frmContainerElm = null;
@@ -257,11 +533,13 @@ class LayoutManager extends Container {
     insertFrame(frame) {
         this.frames[frame.id] = frame;
         this.frmContainerElm.appendChild(frame.element);
+        EventBroadcaster.registerMouseDownEventForFrameBorder(frame);
     }
 
     removeFrame(frame) {
         delete this.frames[frame.id];
         this.frmContainerElm.removeChild(frame.element);
+        EventBroadcaster.unregisterMouseDownEventForFrameBorder(frame);
     }
 
     findFrameByMousePos(cursorX, cursorY) {
@@ -271,49 +549,6 @@ class LayoutManager extends Container {
             }
         }
         return null;
-    }
-
-    findFrameById(id) {
-        return this.frames[id];
-    }
-
-    findFramesByLine(x0, y0, x1, y1) {
-        if (x1 < x0 || (x0 === x1 && y1 < y0)) {
-            [x0, x1] = this.#switchValue(x0, x1);
-            [y0, y1] = this.#switchValue(y0, y1);
-        }
-        let m = this.#getSteepness(x0, y0, x1, y1);
-        let f = this.#getLineFormula(m, x0, y0, x1, y1);
-        return m <= 1 ? this.#walkOnLine(x0, x1, f) : this.#walkOnLine(y0, y1, f);
-    }
-
-    #switchValue(a, b) {
-        let c = a;
-        a = b;
-        b = c;
-        return [a, b];
-    }
-
-    #getSteepness(x0, y0, x1, y1) {
-        //(y-y0)=m(x-x0) => m=(y-y0)/(x-x0);
-        return (y1 - y0) / (x1 - x0)
-    }
-
-    #getLineFormula(m, x0, y0, x1, y1) {
-        //y=m(x-x0)+y0) m<=1 & x=(y-y0)/m+x0 m>1;
-        return m <= 1 ? x => m * (x - x0) + y0 : y => (y - y0) / m + x0;
-    }
-
-    #walkOnLine(start, end, formula) {
-        let result = [];
-        for (let i = start; i <= end; i++) {
-            let frame = this.findFrameByMousePos(i, formula(i));
-            if (frame == null)
-                continue;
-            result[frame.id] = frame;
-            i += frmGap;
-        }
-        return result;
     }
 }
 
@@ -328,51 +563,46 @@ class Frame extends Container {
 
     loadElement() {
         this.setElement(this.htmlToElement(
-            '<div class="frame">' +
-            '<img src="images/frame-handler.png" style="position: absolute; width: 15px;height: 15px; top: -1px;cursor: crosshair;z-index: 10" ' +
-            'onmousedown="EventBroadcaster.onFrmMouseDownHandler(EventBroadcaster.bspEvents.setSrc(this))" ' +
-            'oncontextmenu="return EventBroadcaster.onFrmCtxHandler(EventBroadcaster.bspEvents.setSrc(this))">' +
-            '<div class="container"></div><div class="footer invisible"></div></div>'));
+            '<div class="frame"><img src="images/frame-handler.png" class="handler"><div class="container"></div><div class="footer invisible"></div></div>'));
 
         this.container = findNearestNode(false, this.element, elm => elm.className === 'container');
         this.footer = findNearestNode(false, this.element, elm => elm.className.search(/\bfooter\b/g) >= 0);
-        this.clearContent();
+        this.removeContent();
+
+        this.appendContent(this.htmlToElement("<div id=\"heyMan\"><span style='font-size: 8px'>" + this.id + "</span></div>"));
     }
 
-    //remove all children and append this element
-    setContent(element) {
-        this.clearContent();
-        this.container.appendChild(element);
-        this.#updateContainerBg();
-    }
-
-    //append a child
     appendContent(element) {
         this.container.appendChild(element);
         this.#updateContainerBg();
     }
 
     removeContent(elm) {
-        this.container.removeChild(elm);
-        this.#updateContainerBg();
-    }
-
-    //clear all children and show empty instead
-    clearContent() {
-        while (this.container.firstChild) {
-            this.container.removeChild(this.container.firstChild);
+        if (elm == null) {
+            while (this.container.firstChild) {
+                this.container.removeChild(this.container.firstChild);
+            }
+        } else {
+            this.container.removeChild(elm);
         }
         this.#updateContainerBg();
     }
 
     setFooter(element) {
         this.footer.appendChild(element);
-        removeClassStyle(this.footer, 'invisible');
+        this.footer.style.display = 'block';
     }
 
     clearFooter(element) {
-        this.footer.removeChild(element);
-        addClassStyle(this.footer, 'invisible');
+        if (element != null) {
+            this.footer.removeChild(element);
+        } else {
+            while (this.footer.firstChild) {
+                this.footer.removeChild(this.footer.firstChild);
+            }
+        }
+        this.footer.style.display = 'none';
+
     }
 
     #updateContainerBg() {
@@ -384,7 +614,7 @@ class Frame extends Container {
     }
 }
 
-class Handler {
+class Controller {
     next(x, y) {
     };
 
@@ -393,36 +623,9 @@ class Handler {
 
     complete() {
     };
-
-    getBorderWidth(value) {
-        let m = value - frmGap;
-        return [m, m + 2 * frmGap];
-    }
-
-    checkMinimumBoundary(v, frames, field) {
-        for (let k = 0; k < frames.length; k++) {
-            if (v - frames[k][field] < triggerGap)
-                return false;
-        }
-        return true;
-    }
-
-    checkMaximumBoundary(v, frames, field) {
-        for (let k = 0; k < frames.length; k++) {
-            if (frames[k][field] - v < triggerGap)
-                return false;
-        }
-        return true;
-    }
-
-    runBatch(frames, operator) {
-        for (let k = 0; k < frames.length; k++) {
-            operator(frames[k]);
-        }
-    }
 }
 
-class FrmCornerHandler extends Handler {
+class FrmCornerController extends Controller {
     x0;
     y0;
     hostFrame;
@@ -438,183 +641,187 @@ class FrmCornerHandler extends Handler {
         setCursor('crosshair');
     }
 
-
     next(x, y) {
         if (x > this.x0 + triggerGap && y >= this.y0) {
-            EventBroadcaster.activeMouseEventHandler = new FrmVDivideHandler(this.hostFrame);
-        } else if (x < this.x0 - 2 * frmGap && y >= this.y0) {
-            EventBroadcaster.activeMouseEventHandler = new FrmHMergeLeftHandler(null, this.hostFrame);
+            EventBroadcaster.activeMouseEventController = new FrmVDivideController(this.hostFrame);
+        } else if (x < this.x0 - dFrmGap && y >= this.y0) {
+            EventBroadcaster.activeMouseEventController = new FrmHMergeLeftController(null, this.hostFrame);
         } else if (y > this.y0 + triggerGap && x >= this.x0) {
-            EventBroadcaster.activeMouseEventHandler = new FrmHDivideHandler(this.hostFrame);
-        } else if (y <= this.y0 - 2 * frmGap && x >= this.x0) {
-            EventBroadcaster.activeMouseEventHandler = new FrmVMergeUpHandler(null, this.hostFrame);
+            EventBroadcaster.activeMouseEventController = new FrmHDivideController(this.hostFrame);
+        } else if (y <= this.y0 - dFrmGap && x >= this.x0) {
+            EventBroadcaster.activeMouseEventController = new FrmVMergeUpController(null, this.hostFrame);
         }
     }
 }
 
-class FrmVDivideHandler extends Handler {
+// divide Controllers-----------------------------------------
+class FrmVDivideController extends Controller {
     leftFrame;
 
     constructor(frame) {
         super();
 
         this.leftFrame = frame;
+        if (this.leftFrame.right - this.leftFrame.left < 2 * triggerGap) {
+            throw 'no enough space'
+        }
     }
 
     next(x, y) {
-        //calculate border
-        let values = this.getBorderWidth(x);
-
         //create a frame
-        let rightFrame = new Frame().setAll(this.leftFrame.top, this.leftFrame.right, this.leftFrame.bottom, values[1]);
+        let rightFrame = new Frame().setAll(this.leftFrame.top, this.leftFrame.right, this.leftFrame.bottom, x + dFrmGap);
 
         //update the current frame
-        this.leftFrame.setRight(values[0]);
+        this.leftFrame.setRight(x);
 
         //render the new frame
         EventBroadcaster.activeLayoutManager.insertFrame(rightFrame);
 
         //switch to horizontal move
-        EventBroadcaster.activeMouseEventHandler = new FrmHMoveHandler([this.leftFrame], [rightFrame]);
+        EventBroadcaster.activeMouseEventController = new FrmHMoveController(this.leftFrame);
     }
 }
 
-class FrmHMoveHandler extends Handler {
-    leftFrames;
-    rightFrames;
-
-    constructor(leftFrames, rightFrames) {
-        super();
-        this.leftFrames = leftFrames;
-        this.rightFrames = rightFrames;
-
-        setCursor('col-resize')
-    }
-
-    next(x, y) {
-        if (this.checkMinimumBoundary(x, this.leftFrames, 'left') && this.checkMaximumBoundary(x, this.rightFrames, 'right')) {
-            let values = this.getBorderWidth(x);
-
-            this.runBatch(this.leftFrames, f => f.setRight(values[0]));
-            this.runBatch(this.rightFrames, f => f.setLeft(values[1]));
-        }
-    }
-}
-
-class FrmHDivideHandler extends Handler {
+class FrmHDivideController extends Controller {
     topFrame;
 
     constructor(frame) {
         super();
 
         this.topFrame = frame;
+        if (this.topFrame.bottom - this.topFrame.top < 2 * triggerGap) {
+            throw 'no enough space'
+        }
     }
 
     next(x, y) {
-        //calculate border
-        let values = this.getBorderWidth(y);
-
         //create a frame
-        let bottomFrame = new Frame().setAll(values[1], this.topFrame.right, this.topFrame.bottom, this.topFrame.left);
+        let bottomFrame = new Frame().setAll(y + dFrmGap, this.topFrame.right, this.topFrame.bottom, this.topFrame.left);
 
         //update the current frame
-        this.topFrame.setBottom(values[0]);
+        this.topFrame.setBottom(y);
 
         //render the new frame
         EventBroadcaster.activeLayoutManager.insertFrame(bottomFrame);
 
         //switch to horizontal move
-        EventBroadcaster.activeMouseEventHandler = new FrmVMoveHandler([this.topFrame], [bottomFrame]);
+        EventBroadcaster.activeMouseEventController = new FrmVMoveController(this.topFrame);
     }
 }
 
-class FrmVMoveHandler extends Handler {
-    topFrames;
-    bottomFrames;
+// divide Controllers-----------------------------------------
 
-    constructor(topFrames, bottomFrames) {
+// move Controllers-------------------------------------------
+class FrmHMoveController extends Controller {
+    edgeTransporter;
+
+    constructor(leftFrame) {
         super();
-        this.topFrames = topFrames;
-        this.bottomFrames = bottomFrames;
+        this.edgeTransporter = new RightEdgeTransporter(leftFrame);
+        setCursor('col-resize')
+    }
 
+    next(x, y) {
+        this.edgeTransporter.set(x);
+    }
+}
+
+class FrmVMoveController extends Controller {
+    edgeTransporter;
+
+    constructor(topFrame) {
+        super();
+        this.edgeTransporter = new BottomEdgeTransporter(topFrame);
         setCursor('row-resize')
     }
 
     next(x, y) {
-        if (this.checkMinimumBoundary(y, this.topFrames, 'top') && this.checkMaximumBoundary(y, this.bottomFrames, 'bottom')) {
-            let values = this.getBorderWidth(y);
-
-            this.runBatch(this.topFrames, f => f.setBottom(values[0]));
-            this.runBatch(this.bottomFrames, f => f.setTop(values[1]));
-        }
+        this.edgeTransporter.set(y);
     }
 }
 
-class FrmMergeHandler extends Handler {
+// move Controllers-------------------------------------------
+
+// merge Controllers------------------------------------------
+class FrmMergeController extends Controller {
     hostFrame;
     guestFrame;
-    isPermitted;
+    #isPermitted;
     arrowElement;
 
     constructor(hostFrame, guestFrame) {
         super();
-
         this.hostFrame = hostFrame;
         this.guestFrame = guestFrame;
+    }
 
-        this.init();
-
-        if (this.guestFrame == null)
-            throw 'no target found';
-
-        if (!this.#areEdgesEqual()) {
-            this.resetSecondView();
-            guestFrame = null;
-        } else {
-            this.prepareSecondViewForMerge();
-        }
+    error(e) {
+        this.#cleanUp();
     }
 
     complete() {
-        if (this.isPermitted) {
+        this.#cleanUp();
+        if (this.#isPermitted === true) {
             this.executeMerge();
-            this.fixNeighbourFrames();
         }
     }
 
     next(x, y) {
-        if (this.guestFrame != null) {
+        if (this.#isPermitted === true) {
             if (this.guestFrame.intercept(x, y, frmGap)) {
-                if (this.isPermitted === false)
-                    this.prepareSecondViewForMerge();
+                this.#prepareSecondViewForMerge();
             } else {
-                if (this.isPermitted === true)
-                    this.resetSecondView();
+                this.#resetSecondView();
             }
+            return true;
         }
+        return false;
     }
 
     init() {
-
+        this.#isPermitted = this.#isMergePermitted();
+        if (this.#isPermitted === false) {
+            setCursor('no-drop');
+        } else {
+            this.arrowElement = this.guestFrame.htmlToElement(this.getFooterHtml());
+            this.#prepareSecondViewForMerge();
+        }
     }
 
-    prepareSecondViewForMerge() {
-        this.arrowElement = this.guestFrame.htmlToElement('<img src="images/merge-arrow.png" style="height: 100%; width: 100%;"/>')
-        this.rotateArrowElement(this.arrowElement);
-        if (this.guestFrame != null)
-            this.guestFrame.setFooter(this.arrowElement);
+    #prepareSecondViewForMerge() {
+        this.guestFrame.setFooter(this.arrowElement);
         this.updateCursor();
-        this.isPermitted = true;
     }
 
-    resetSecondView() {
-        setCursor('no-drop');
+    #cleanUp() {
+        setCursor('auto');
+        this.hostFrame.clearFooter();
         if (this.guestFrame != null)
-            this.guestFrame.clearFooter(this.arrowElement);
-        this.isPermitted = false;
+            this.guestFrame.clearFooter();
     }
 
-    rotateArrowElement(element) {
+    #resetSecondView() {
+        setCursor('no-drop');
+        if (this.guestFrame.footer.children.length > 0)
+            this.guestFrame.clearFooter(this.arrowElement);
+    }
+
+    static #getBoundaries(value1, value2) {
+        let a = 4 * frmGap;
+        return [value1 - a, value1 + a, value2 - a, value2 + a];
+    }
+
+    #isMergePermitted() {
+        if (this.guestFrame != null) {
+            let edges = this.getOppositeEdges();
+            let boundaries = FrmMergeController.#getBoundaries(this.hostFrame[edges[0]], this.hostFrame[edges[1]]);
+            return this.guestFrame[edges[0]] >= boundaries[0] && this.guestFrame[edges[0]] <= boundaries[1]
+                && this.guestFrame[edges[1]] >= boundaries[2] && this.guestFrame[edges[1]] <= boundaries[3];
+        }
+        return false;
+    }
+
+    getFooterHtml() {
     }
 
     updateCursor() {
@@ -623,87 +830,70 @@ class FrmMergeHandler extends Handler {
     executeMerge() {
     }
 
-    getSharedEdgeLength;
-
-    #areEdgesEqual() {
-        return Math.abs(this.getSharedEdgeLength(this.hostFrame) - this.getSharedEdgeLength(this.guestFrame)) < 2 * frmGap;
+    getOppositeEdges() {
     }
 
-    fixNeighbourFrames() {
-    }
 }
 
-class FrmHMergeHandler extends FrmMergeHandler {
+class FrmHMergeController
+    extends FrmMergeController {
 
     constructor(hostFrame, guestFrame) {
         super(hostFrame, guestFrame);
     }
 
     init() {
-        this.getSharedEdgeLength = frame => frame['top'] - frame['bottom'];
         if (this.guestFrame == null)
             this.guestFrame = EventBroadcaster.activeLayoutManager.findFrameByMousePos(this.hostFrame.left - triggerGap, this.hostFrame.top + triggerGap);
+        super.init();
     }
 
-    fixNeighbourFrames() {
-        let aboveFrames;
-        let belowFrames;
-        [aboveFrames, belowFrames] = this.hostFrame.left < this.guestFrame.left ?
-            this.#getNeighbourFrames(this.hostFrame, this.guestFrame) :
-            this.#getNeighbourFrames(this.guestFrame, this.hostFrame);
-
-        this.runBatch(aboveFrames, f => f.setBottom(this.hostFrame.top - 2 * frmGap));
-        this.runBatch(belowFrames, f => f.setTop(this.hostFrame.bottom + 2 * frmGap));
+    getOppositeEdges() {
+        return ['top', 'bottom'];
     }
 
-    #getNeighbourFrames(f1, f2) {
-        //return [aboveFrames,belowFrames]
-        return [
-            EventBroadcaster.activeLayoutManager.findFramesByLine(f1.left + frmGap, f1.top - triggerGap, f2.right - frmGap, f2.top - triggerGap),
-            EventBroadcaster.activeLayoutManager.findFramesByLine(f1.left + frmGap, f1.bottom + triggerGap, f2.right - frmGap, f2.bottom + triggerGap)
-        ];
+    executeMerge() {
+        if (!(
+            new TopEdgeTransporter(this.guestFrame).set(this.hostFrame.top) &&
+            new BottomEdgeTransporter(this.guestFrame).set(this.hostFrame.bottom))) {
+            alert('impossible merge');
+            throw 'impossible merge';
+        }
     }
 }
 
-class FrmVMergeHandler extends FrmMergeHandler {
+class FrmVMergeController extends FrmMergeController {
     constructor(hostFrame, guestFrame) {
         super(hostFrame, guestFrame);
     }
 
     init() {
-        this.getSharedEdgeLength = frame => frame['right'] - frame['left'];
         if (this.guestFrame == null)
             this.guestFrame = EventBroadcaster.activeLayoutManager.findFrameByMousePos(this.hostFrame.left + triggerGap, this.hostFrame.top - triggerGap);
+        super.init();
     }
 
-    fixNeighbourFrames() {
-        let leftFrames;
-        let rightFrames;
-        [leftFrames, rightFrames] = this.hostFrame.top < this.guestFrame.top ?
-            this.#getNeighbourFrames(this.hostFrame, this.guestFrame) :
-            this.#getNeighbourFrames(this.guestFrame, this.hostFrame);
-
-
-        this.runBatch(leftFrames, f => f.setRight(this.hostFrame.left - 2 * frmGap));
-        this.runBatch(leftFrames, f => f.setRight(this.hostFrame.right + 2 * frmGap));
+    getOppositeEdges() {
+        return ['left', 'right'];
     }
 
-    #getNeighbourFrames(f1, f2) {
-        //return [leftFrames,rightFrames]
-        return [
-            EventBroadcaster.activeLayoutManager.findFramesByLine(f1.left - triggerGap, f1.bottom - frmGap, f2.left - triggerGap, f2.top + frmGap),
-            EventBroadcaster.activeLayoutManager.findFramesByLine(f1.right + triggerGap, f1.bottom - frmGap, f2.right + triggerGap, f2.top + frmGap)
-        ];
+    executeMerge() {
+        if (!(new LeftEdgeTransporter(this.guestFrame).set(this.hostFrame.left) &&
+            new RightEdgeTransporter(this.guestFrame).set(this.hostFrame.right))) {
+            alert('impossible merge');
+            throw 'impossible merge';
+        }
     }
 }
 
-class FrmHMergeLeftHandler extends FrmHMergeHandler {
+class FrmHMergeLeftController extends FrmHMergeController {
     constructor(leftFrame, rightFrame) {
         super(rightFrame, leftFrame);
+        this.init();
     }
 
-    rotateArrowElement(element) {
-        //no rotate required
+    getFooterHtml() {
+        return '<div class="merge-arrow"><img class="left-arrow" src="images/merge-arrow-left.png"/></div>';
     }
 
     updateCursor() {
@@ -711,24 +901,26 @@ class FrmHMergeLeftHandler extends FrmHMergeHandler {
     }
 
     executeMerge() {
+        super.executeMerge();
         this.hostFrame.setLeft(this.guestFrame.left);
         EventBroadcaster.activeLayoutManager.removeFrame(this.guestFrame);
     }
 
     next(x, y) {
-        super.next(x, y);
-        if (x >= this.hostFrame.left)
-            EventBroadcaster.activeMouseEventHandler = new FrmHMergeRightHandler(this.guestFrame, this.hostFrame)
+        if (super.next(x, y))
+            if (x >= this.hostFrame.left)
+                EventBroadcaster.activeMouseEventController = new FrmHMergeRightController(this.guestFrame, this.hostFrame)
     }
 }
 
-class FrmHMergeRightHandler extends FrmHMergeHandler {
+class FrmHMergeRightController extends FrmHMergeController {
     constructor(leftFrame, rightFrame) {
         super(leftFrame, rightFrame);
+        this.init();
     }
 
-    rotateArrowElement(element) {
-        //no rotate required
+    getFooterHtml() {
+        return '<div class="merge-arrow"><img class="right-arrow" src="images/merge-arrow-right.png"/></div>';
     }
 
     updateCursor() {
@@ -736,24 +928,26 @@ class FrmHMergeRightHandler extends FrmHMergeHandler {
     }
 
     executeMerge() {
+        super.executeMerge();
         this.hostFrame.setRight(this.guestFrame.right);
         EventBroadcaster.activeLayoutManager.removeFrame(this.guestFrame);
     }
 
     next(x, y) {
-        super.next(x, y);
-        if (x <= this.hostFrame.right)
-            EventBroadcaster.activeMouseEventHandler = new FrmHMergeLeftHandler(this.hostFrame, this.guestFrame);
+        if (super.next(x, y))
+            if (x <= this.hostFrame.right)
+                EventBroadcaster.activeMouseEventController = new FrmHMergeLeftController(this.hostFrame, this.guestFrame);
     }
 }
 
-class FrmVMergeUpHandler extends FrmVMergeHandler {
+class FrmVMergeUpController extends FrmVMergeController {
     constructor(aboveFrame, belowFrame) {
         super(belowFrame, aboveFrame);
+        this.init();
     }
 
-    rotateArrowElement(element) {
-        //no rotate required
+    getFooterHtml() {
+        return '<div class="merge-arrow"><img class="up-arrow" src="images/merge-arrow-up.png"/></div>';
     }
 
     updateCursor() {
@@ -761,24 +955,26 @@ class FrmVMergeUpHandler extends FrmVMergeHandler {
     }
 
     executeMerge() {
+        super.executeMerge();
         this.hostFrame.setTop(this.guestFrame.top);
         EventBroadcaster.activeLayoutManager.removeFrame(this.guestFrame);
     }
 
     next(x, y) {
-        super.next(x, y);
-        if (y >= this.hostFrame.top)
-            EventBroadcaster.activeMouseEventHandler = new FrmVMergeDownHandler(this.guestFrame, this.hostFrame)
+        if (super.next(x, y))
+            if (y >= this.hostFrame.top)
+                EventBroadcaster.activeMouseEventController = new FrmVMergeDownController(this.guestFrame, this.hostFrame)
     }
 }
 
-class FrmVMergeDownHandler extends FrmVMergeHandler {
+class FrmVMergeDownController extends FrmVMergeController {
     constructor(aboveFrame, belowFrame) {
         super(aboveFrame, belowFrame);
+        this.init();
     }
 
-    rotateArrowElement(element) {
-        //no rotate required
+    getFooterHtml() {
+        return '<div class="merge-arrow"><img class="down-arrow" src="images/merge-arrow-down.png"/></div>';
     }
 
     updateCursor() {
@@ -786,13 +982,59 @@ class FrmVMergeDownHandler extends FrmVMergeHandler {
     }
 
     executeMerge() {
+        super.executeMerge();
         this.hostFrame.setBottom(this.guestFrame.bottom);
         EventBroadcaster.activeLayoutManager.removeFrame(this.guestFrame);
     }
 
     next(x, y) {
-        super.next(x, y);
-        if (y <= this.hostFrame.bottom)
-            EventBroadcaster.activeMouseEventHandler = new FrmVMergeUpHandler(this.hostFrame, this.guestFrame);
+        if (super.next(x, y))
+            if (y <= this.hostFrame.bottom)
+                EventBroadcaster.activeMouseEventController = new FrmVMergeUpController(this.hostFrame, this.guestFrame);
     }
 }
+
+// merge Controllers------------------------------------------
+
+// border Controllers-----------------------------------------
+class FrmBorderController extends Controller {
+    edgeTransporter;
+    valueGetter;
+
+    constructor(frame, edge) {
+        super();
+        this.init(frame, edge);
+    }
+
+    init(frame, edge) {
+        let edges = {
+            top: () => {
+                this.edgeTransporter = new TopEdgeTransporter(frame);
+                this.valueGetter = (x, y) => y;
+                setCursor('row-resize');
+            },
+            right: () => {
+                this.edgeTransporter = new RightEdgeTransporter(frame);
+                this.valueGetter = (x, y) => x;
+                setCursor('col-resize');
+            },
+            bottom: () => {
+                this.edgeTransporter = new BottomEdgeTransporter(frame);
+                this.valueGetter = (x, y) => y;
+                setCursor('row-resize');
+            },
+            left: () => {
+                this.edgeTransporter = new LeftEdgeTransporter(frame);
+                this.valueGetter = (x, y) => x;
+                setCursor('col-resize');
+            }
+        };
+        edges[edge]();
+    }
+
+    next(x, y) {
+        this.edgeTransporter.set(this.valueGetter(x, y));
+    }
+}
+
+// border Controllers-----------------------------------------
