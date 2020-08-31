@@ -166,8 +166,9 @@ class EventBroadcaster {
     }
 
     static #initBorderController(e, edge) {
-        if (e.clientX > triggerGap && e.clientX < EventBroadcaster.activeLayoutManager.right - triggerGap &&
-            e.clientY > triggerGap && e.clientY < EventBroadcaster.activeLayoutManager.bottom - triggerGap) {
+        let a = 3 * dFrmGap;
+        if (e.clientX > a && e.clientX < EventBroadcaster.activeLayoutManager.right - a &&
+            e.clientY > a && e.clientY < EventBroadcaster.activeLayoutManager.bottom - a) {
             e.preventDefault ? e.preventDefault() : e.returnValue = false;
             EventBroadcaster.loadTargetLayoutManager(e);
             EventBroadcaster.activeMouseEventController = new FrmBorderController(EventBroadcaster.activeLayoutManager.frames[e.target.id], edge);
@@ -370,16 +371,10 @@ class EdgeTransporter {
                     let oppositeEdgeTransporter = new this.transporterType(f[k], this.identifiedNeighbours);
                     this.effectiveEdges.push(oppositeEdgeTransporter);
 
-                    if (oppositeEdgeTransporter.min > this.min)
-                        this.min = oppositeEdgeTransporter.min;
-
-                    if (oppositeEdgeTransporter.max < this.max)
-                        this.max = oppositeEdgeTransporter.max;
+                    this.updateMinAndMax(oppositeEdgeTransporter);
                 }
             }
         }
-        this.min += dFrmGap;
-        this.max -= dFrmGap;
     }
 
     update(value) {
@@ -395,6 +390,9 @@ class EdgeTransporter {
     }
 
     loadMinOrMax() {
+    }
+
+    updateMinAndMax(oppositeEdgeTransporter) {
     }
 }
 
@@ -426,6 +424,10 @@ class TopEdgeTransporter extends EdgeTransporter {
     loadMinOrMax() {
         this.max = this.frame.bottom - triggerGap;
     }
+
+    updateMinAndMax(oppositeEdgeTransporter) {
+        this.min = oppositeEdgeTransporter.min + dFrmGap;
+    }
 }
 
 class BottomEdgeTransporter extends EdgeTransporter {
@@ -455,6 +457,10 @@ class BottomEdgeTransporter extends EdgeTransporter {
 
     loadMinOrMax() {
         this.min = this.frame.top + triggerGap;
+    }
+
+    updateMinAndMax(oppositeEdgeTransporter) {
+        this.max = oppositeEdgeTransporter.max - dFrmGap;
     }
 }
 
@@ -486,6 +492,10 @@ class LeftEdgeTransporter extends EdgeTransporter {
     loadMinOrMax() {
         this.max = this.frame.right - triggerGap;
     }
+
+    updateMinAndMax(oppositeEdgeTransporter) {
+        this.min = oppositeEdgeTransporter.min + dFrmGap;
+    }
 }
 
 class RightEdgeTransporter extends EdgeTransporter {
@@ -515,6 +525,10 @@ class RightEdgeTransporter extends EdgeTransporter {
 
     loadMinOrMax() {
         this.min = this.frame.left + triggerGap;
+    }
+
+    updateMinAndMax(oppositeEdgeTransporter) {
+        this.max = oppositeEdgeTransporter.max - dFrmGap;
     }
 }
 
