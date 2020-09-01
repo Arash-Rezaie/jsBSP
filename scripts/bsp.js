@@ -2,7 +2,6 @@ cssInteriorGap = 1;
 triggerGap = 40;
 frmGap = 1;
 dFrmGap = 2 * frmGap;
-bspLayouts = Array();
 
 function findNearestNode(lookUpside, startElm, checker) {
     let tmp = startElm;
@@ -40,6 +39,113 @@ function addClassStyle(element, clsName) {
     }
 }
 
+class BspLayoutManagerController {
+    layoutManager;
+    rightFrames;
+    minRight = 0;
+    minBottom = 0;
+    bottomFrames;
+
+    static bspLayouts = Array();
+
+    constructor(layoutManager) {
+        this.layoutManager = layoutManager;
+    }
+
+    getFrames(checker) {
+        let result = [];
+        for (let k in this.layoutManager.frames)
+            if (checker(this.layoutManager.frames[k]))
+                result.push(this.layoutManager.frames[k]);
+        return result;
+    }
+
+
+    setWidth(value) {
+        if (typeof value == 'string')
+            value = Number(value);
+        if (this.rightFrames == null) {
+            let a = this.layoutManager.right - triggerGap;
+            this.rightFrames = this.getFrames(f => f.right > a);
+            for (let f of this.rightFrames)
+                if (this.minRight < f.left)
+                    this.minRight = f.left;
+            this.minRight += triggerGap + 8 * frmGap;
+        }
+        let lr = this.layoutManager.left + value;
+        if (lr > this.minRight) {
+            let r = lr - 7 * frmGap;
+            for (let f of this.rightFrames) {
+                f.setRight(r);
+            }
+            this.layoutManager.setRight(lr);
+        }
+    }
+
+    setHeight(value) {
+        if (typeof value == 'string')
+            value = Number(value);
+        if (this.bottomFrames == null) {
+            let a = this.layoutManager.bottom - triggerGap;
+            this.bottomFrames = this.getFrames(f => f.bottom > a);
+            for (let f of this.bottomFrames)
+                if (this.minBottom < f.top)
+                    this.minBottom = f.top;
+            this.minBottom += triggerGap + 8 * frmGap;
+        }
+        let lb = this.layoutManager.top + value;
+        if (lb > this.minBottom) {
+            let b = lb - 7 * frmGap;
+            for (let f of this.bottomFrames) {
+                f.setBottom(b);
+            }
+            this.layoutManager.setBottom(lb);
+        }
+    }
+
+    static init() {
+        let views = document.getElementsByClassName('bspLayoutManager');
+        for (let i = 0; i < views.length; i++) {
+            let lm = new LayoutManager(views[i]);
+
+            let frame = new Frame().setAll(0, lm.frmContainerElm.clientWidth - 4 * cssInteriorGap, lm.frmContainerElm.clientHeight - 4 * cssInteriorGap, 0);
+            lm.insertFrame(frame);
+            BspLayoutManagerController.bspLayouts[lm.id] = lm;
+        }
+        EventBroadcaster.initEventBroadcaster();
+    }
+
+    static appendContent(frameAdr, element) {
+        let ids = frameAdr.split(':');
+        if (ids.length === 2) {
+            let lm = BspLayoutManagerController.bspLayouts[ids[0]];
+            if (lm != null) {
+                let f = lm.frames[ids[1]];
+                if (f != null) {
+                    f.appendContent(element);
+                }
+            }
+        }
+    }
+
+    static removeContent(frameAdr, element) {
+        let ids = frameAdr.split(':');
+        if (ids.length === 2) {
+            let lm = BspLayoutManagerController.bspLayouts[ids[0]];
+            if (lm != null) {
+                let f = lm.frames[ids[1]];
+                if (f != null) {
+                    f.removeContent(element);
+                }
+            }
+        }
+    }
+
+    static getLayoutManagerById(id) {
+        return BspLayoutManagerController.bspLayouts[id];
+    }
+}
+
 class EventBroadcaster {
     static bspEvents = document.createEvent("MouseEvent");
     static activeMouseEventController;
@@ -47,22 +153,10 @@ class EventBroadcaster {
 
     static initEventBroadcaster() {
         EventBroadcaster.createEventBroadcaster();
-        EventBroadcaster.initBspLayouts();
     }
 
     static createEventBroadcaster() {
         EventBroadcaster.bspEvents.initEvent('bsp.events', true, true);
-    }
-
-    static initBspLayouts() {
-        let views = document.getElementsByClassName('bspLayoutManager');
-        for (let i = 0; i < views.length; i++) {
-            let lm = new LayoutManager(views[i]);
-
-            let frame = new Frame().setAll(0, lm.frmContainerElm.clientWidth - 4 * cssInteriorGap, lm.frmContainerElm.clientHeight - 4 * cssInteriorGap, 0);
-            lm.insertFrame(frame);
-            bspLayouts[lm.id] = lm;
-        }
     }
 
     static getHandlerElementByFrame(frame) {
@@ -97,7 +191,7 @@ class EventBroadcaster {
 
     static loadTargetLayoutManager(e) {
         let temp = findNearestNode(true, e.target, elm => elm.className === 'bspLayoutManager');
-        EventBroadcaster.activeLayoutManager = bspLayouts[temp.id];
+        EventBroadcaster.activeLayoutManager = BspLayoutManagerController.bspLayouts[temp.id];
     }
 
     static onFrmMouseDownController(e) {
@@ -179,36 +273,9 @@ class EventBroadcaster {
             layoutManager.listener(layoutManager.id + ':' + frm.id, e.target);
         }
     }
-
-    static appendContent(frameAdr, element) {
-        let ids = frameAdr.split(':');
-        if (ids.length === 2) {
-            let lm = bspLayouts[ids[0]];
-            if (lm != null) {
-                let f = lm.frames[ids[1]];
-                if (f != null) {
-                    f.appendContent(element);
-                }
-            }
-        }
-    }
-
-    static removeContent(frameAdr,element) {
-        let ids = frameAdr.split(':');
-        if (ids.length === 2) {
-            let lm = bspLayouts[ids[0]];
-            if (lm != null) {
-                let f = lm.frames[ids[1]];
-                if (f != null) {
-                    f.removeContent(element);
-                }
-            }
-        }
-    }
-
 }
 
-window.onload = EventBroadcaster.initEventBroadcaster;
+window.onload = BspLayoutManagerController.init;
 
 class EdgeTransporter {
     min = -1;
@@ -448,7 +515,11 @@ class Container {
         this.element = elm;
 
         //set id
-        this.element.id = this.id;
+        if (this.element.id != null && this.element.id.length > 0) {
+            this.id = this.element.id;
+        } else {
+            this.element.id = this.id;
+        }
 
         //sync sizes
         this.top = this.element.clientTop;
@@ -558,13 +629,17 @@ class LayoutManager extends Container {
         EventBroadcaster.unregisterMouseEventsForFrameBorder(frame);
     }
 
-    findFrameByMousePos(cursorX, cursorY) {
+    findFrameByPos(cursorX, cursorY) {
         for (let key in this.frames) {
             if (this.frames[key].intercept(cursorX, cursorY)) {
                 return this.frames[key];
             }
         }
         return null;
+    }
+
+    getControllerInstance() {
+        return new BspLayoutManagerController(this);
     }
 }
 
@@ -858,7 +933,7 @@ class FrmHMergeController
 
     init() {
         if (this.guestFrame == null)
-            this.guestFrame = EventBroadcaster.activeLayoutManager.findFrameByMousePos(this.hostFrame.left - triggerGap, this.hostFrame.top + triggerGap);
+            this.guestFrame = EventBroadcaster.activeLayoutManager.findFrameByPos(this.hostFrame.left - triggerGap, this.hostFrame.top + triggerGap);
         super.init();
     }
 
@@ -883,7 +958,7 @@ class FrmVMergeController extends FrmMergeController {
 
     init() {
         if (this.guestFrame == null)
-            this.guestFrame = EventBroadcaster.activeLayoutManager.findFrameByMousePos(this.hostFrame.left + triggerGap, this.hostFrame.top - triggerGap);
+            this.guestFrame = EventBroadcaster.activeLayoutManager.findFrameByPos(this.hostFrame.left + triggerGap, this.hostFrame.top - triggerGap);
         super.init();
     }
 

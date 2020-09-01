@@ -13,11 +13,22 @@
 
 </head>
 <body>
-<div class="bspLayoutManager" menu-handler="doSomeThing"/>
+<span>width:</span><input type="text" id="right"><br>
+<span>height:</span><input type="text" id="bottom"><br>
+<button id="btn" onclick="doIt()">Do it</button>
+<br>
+<div style="position: relative;width: 1000px;height: 1000px">
+    <div class="bspLayoutManager" menu-handler="doSomeThing" id="1234"/>
+</div>
 
 <script>
+    let w = document.querySelector('#width');
+    let h = document.querySelector('#height');
+
+    setTimeout(assignValue, 1000);
+
     function doSomeThing(frameAdr, anchorElement) {
-        EventBroadcaster.appendContent(frameAdr, htmlToElement('<div><span>Hello World!</span></div>'));
+        BspLayoutManagerController.appendContent(frameAdr, htmlToElement('<div><span>This is a simple text</span></div>'));
     }
 
     function htmlToElement(html) {
@@ -25,6 +36,18 @@
         html = html.trim(); // Never return a text node of whitespace as the result
         template.innerHTML = html;
         return template.content.firstChild;
+    }
+
+    function assignValue() {
+        let lm = BspLayoutManagerController.getLayoutManagerById('1234');
+        w.value = lm.getWidth();
+        h.value = lm.getHeight();
+    }
+
+    function doIt() {
+        let lmc = BspLayoutManagerController.getLayoutManagerById('1234').getControllerInstance();
+        lmc.setWidth(Number(w.value));
+        lmc.setHeight(h.value);
     }
 </script>
 
