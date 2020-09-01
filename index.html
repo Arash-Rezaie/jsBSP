@@ -8,14 +8,26 @@
     <meta name="author" content="Arash Rezaie">
 
     <script type="text/javascript" src="scripts/bsp.js"></script>
-    <!--main styles-->
+
     <link type="text/css" rel="stylesheet" href="styles/bsp-styles.css">
 
 </head>
 <body>
-<div>
-    <div class="bspLayoutManager"/>
-</div>
+<div class="bspLayoutManager" menu-handler="doSomeThing"/>
+
+<script>
+    function doSomeThing(frameAdr, anchorElement) {
+        EventBroadcaster.appendContent(frameAdr, htmlToElement('<div><span>Hello World!</span></div>'));
+    }
+
+    function htmlToElement(html) {
+        let template = document.createElement('template');
+        html = html.trim(); // Never return a text node of whitespace as the result
+        template.innerHTML = html;
+        return template.content.firstChild;
+    }
+</script>
+
 </body>
 </html>
 

@@ -40,43 +40,6 @@ function addClassStyle(element, clsName) {
     }
 }
 
-function modifyAttributes(element, attributes) {
-    if (typeof (attributes) == 'string')
-        attributes = [attributes];
-    let s = element.attributes.style.nodeValue;
-    s = s.trim();
-    if (!s.endsWith(';'))
-        s = s + ';';
-    for (let i = attributes.length - 1; i >= 0; i--) {
-        let k = attributes[i].split(':');
-        k[0] = k[0].trim();
-        k[1] = k[1].trim();
-        if (!k[1].endsWith(';'))
-            k[1] += ';';
-        delete attributes[i];
-        let s2 = s.replace(new RegExp('\\b' + k[0] + ':.+?;'), k[0] + ':' + k[1]);
-        if (s2 === s) {
-            s2 += k[0] + ':' + k[1];
-        }
-        s = s2;
-    }
-    element.attributes.style.nodeValue = s;
-}
-
-function removeAttributes(element, attributes) {
-    if (typeof (attributes) == 'string')
-        attributes = [attributes];
-    let s = element.attributes.style.nodeValue;
-    s = s.trim();
-    if (!s.endsWith(';'))
-        s = s + ';';
-    for (let i = attributes.length - 1; i >= 0; i--) {
-        let k = attributes[i].split(':')[0].trim();
-        s = s.replace(new RegExp('\\b' + k[0] + ':.+?;'), '');
-    }
-    element.attributes.style.nodeValue = s;
-}
-
 class EventBroadcaster {
     static bspEvents = document.createEvent("MouseEvent");
     static activeMouseEventController;
@@ -89,7 +52,6 @@ class EventBroadcaster {
 
     static createEventBroadcaster() {
         EventBroadcaster.bspEvents.initEvent('bsp.events', true, true);
-        //
     }
 
     static initBspLayouts() {
@@ -103,12 +65,18 @@ class EventBroadcaster {
         }
     }
 
-    static registerMouseDownEventForFrameBorder(frame) {
-        frame.element.addEventListener('mousedown', EventBroadcaster.onFrmMouseDownController, false);
+    static getHandlerElementByFrame(frame) {
+        return findNearestNode(false, frame, elm => elm.className === 'handler');
     }
 
-    static unregisterMouseDownEventForFrameBorder(frame) {
+    static registerMouseEventsForFrameBorder(frame) {
+        frame.element.addEventListener('mousedown', EventBroadcaster.onFrmMouseDownController, false);
+        EventBroadcaster.getHandlerElementByFrame(frame.element).addEventListener('contextmenu', EventBroadcaster.onFrmCtxController, false);
+    }
+
+    static unregisterMouseEventsForFrameBorder(frame) {
         frame.element.removeEventListener('mousedown', EventBroadcaster.onFrmMouseDownController, false);
+        EventBroadcaster.getHandlerElementByFrame(frame.element).removeEventListener('contextmenu', EventBroadcaster.onFrmCtxController, false);
     }
 
     static registerMouseMoveEvent() {
@@ -155,17 +123,17 @@ class EventBroadcaster {
 
     static onFrmBorderMouseDownController(e) {
         if (e.offsetX <= 0) {
-            this.#initBorderController(e, 'left');
+            this.initBorderController(e, 'left');
         } else if (e.offsetY <= 0) {
-            this.#initBorderController(e, 'top');
+            this.initBorderController(e, 'top');
         } else if (e.offsetX >= e.currentTarget.clientWidth - 1) {
-            this.#initBorderController(e, 'right');
+            this.initBorderController(e, 'right');
         } else if (e.offsetY >= e.currentTarget.clientHeight - 1) {
-            this.#initBorderController(e, 'bottom');
+            this.initBorderController(e, 'bottom');
         }
     }
 
-    static #initBorderController(e, edge) {
+    static initBorderController(e, edge) {
         let a = 3 * dFrmGap;
         if (e.clientX > a && e.clientX < EventBroadcaster.activeLayoutManager.right - a &&
             e.clientY > a && e.clientY < EventBroadcaster.activeLayoutManager.bottom - a) {
@@ -204,128 +172,43 @@ class EventBroadcaster {
     }
 
     static onFrmCtxController(e) {
-    }
-
-    static fireEvent(element, type) {
-        if (element.fireEvent) {
-            element.fireEvent('on' + type);
-        } else {
-            let eventObj = document.createEvent('Events');
-            eventObj.initEvent(type, true, false);
-            element.dispatchEvent(eventObj);
+        e.preventDefault ? e.preventDefault() : e.returnValue = false;
+        let layoutManager = EventBroadcaster.activeLayoutManager;
+        if (layoutManager.listener != null) {
+            let frm = findNearestNode(true, e.target, elm => elm.className === 'frame');
+            layoutManager.listener(layoutManager.id + ':' + frm.id, e.target);
         }
     }
+
+    static appendContent(frameAdr, element) {
+        let ids = frameAdr.split(':');
+        if (ids.length === 2) {
+            let lm = bspLayouts[ids[0]];
+            if (lm != null) {
+                let f = lm.frames[ids[1]];
+                if (f != null) {
+                    f.appendContent(element);
+                }
+            }
+        }
+    }
+
+    static removeContent(frameAdr,element) {
+        let ids = frameAdr.split(':');
+        if (ids.length === 2) {
+            let lm = bspLayouts[ids[0]];
+            if (lm != null) {
+                let f = lm.frames[ids[1]];
+                if (f != null) {
+                    f.removeContent(element);
+                }
+            }
+        }
+    }
+
 }
 
 window.onload = EventBroadcaster.initEventBroadcaster;
-
-
-class Container {
-    id;
-    element;
-    top;
-    right;
-    bottom;
-    left;
-
-    constructor() {
-        this.id = this.uuid();
-    }
-
-    uuid() {
-        let dt = new Date().getTime();
-        let temp = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-            let r = (dt + Math.random() * 16) % 16 | 0;
-            dt = Math.floor(dt / 16);
-            return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-        });
-        return temp;
-    }
-
-    htmlToElement(html) {
-        let template = document.createElement('template');
-        html = html.trim(); // Never return a text node of whitespace as the result
-        template.innerHTML = html;
-        return template.content.firstChild;
-    }
-
-    setElement(elm) {
-        //set element field
-        this.element = elm;
-
-        //set id
-        this.element.id = this.id;
-
-        //sync sizes
-        this.top = this.element.clientTop;
-        this.left = this.element.clientLeft;
-        this.right = this.element.clientWidth + this.left;
-        this.bottom = this.element.clientHeight + this.top;
-    }
-
-    appendChild(elm) {
-        this.element.appendChild(elm);
-    }
-
-    setAll(top, right, bottom, left) {
-        this.top = top;
-        this.element.style.top = top + 'px';
-
-        this.right = right;
-        this.element.style.right = right + 'px';
-
-        this.bottom = bottom;
-        this.element.style.bottom = bottom + 'px';
-
-        this.left = left;
-        this.element.style.left = left + 'px';
-
-        this.element.style.width = this.getWidth() + 'px';
-        this.element.style.height = this.getHeight() + 'px';
-
-        return this;
-    }
-
-    setTop(top) {
-        this.top = top;
-        this.element.style.top = top + 'px';
-        this.element.style.height = this.getHeight() + 'px';
-        return this;
-    }
-
-    setRight(right) {
-        this.right = right;
-        this.element.style.right = right + 'px';
-        this.element.style.width = this.getWidth() + 'px';
-        return this;
-    }
-
-    setBottom(bottom) {
-        this.bottom = bottom;
-        this.element.style.bottom = bottom + 'px';
-        this.element.style.height = this.getHeight() + 'px';
-        return this;
-    }
-
-    setLeft(left) {
-        this.left = left;
-        this.element.style.left = left + 'px';
-        this.element.style.width = this.getWidth() + 'px';
-        return this;
-    }
-
-    getWidth() {
-        return this.right - this.left;
-    }
-
-    getHeight() {
-        return this.bottom - this.top;
-    }
-
-    intercept(x, y, offset = 0) {
-        return x <= this.right - offset && x >= this.left + offset && y <= this.bottom - offset && y >= this.top + offset;
-    }
-}
 
 class EdgeTransporter {
     min = -1;
@@ -343,7 +226,7 @@ class EdgeTransporter {
             this.identifiedNeighbours[frame.id] = frame;
         }
         this.transporterType = this.getTransporterType();
-        this.#loadNeighbours();
+        this.loadNeighbours();
     }
 
     set(value) {
@@ -361,7 +244,7 @@ class EdgeTransporter {
         }
     }
 
-    #loadNeighbours() {
+    loadNeighbours() {
         let f = EventBroadcaster.activeLayoutManager.frames;
         this.loadMinOrMax();
         for (let k in f) {
@@ -370,7 +253,6 @@ class EdgeTransporter {
                     this.identifiedNeighbours[k] = f[k];
                     let oppositeEdgeTransporter = new this.transporterType(f[k], this.identifiedNeighbours);
                     this.effectiveEdges.push(oppositeEdgeTransporter);
-
                     this.updateMinAndMax(oppositeEdgeTransporter);
                 }
             }
@@ -532,9 +414,117 @@ class RightEdgeTransporter extends EdgeTransporter {
     }
 }
 
+class Container {
+    id;
+    element;
+    top;
+    right;
+    bottom;
+    left;
+
+    constructor() {
+        this.id = this.uuid();
+    }
+
+    uuid() {
+        let dt = new Date().getTime();
+        let temp = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            let r = (dt + Math.random() * 16) % 16 | 0;
+            dt = Math.floor(dt / 16);
+            return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+        return temp;
+    }
+
+    htmlToElement(html) {
+        let template = document.createElement('template');
+        html = html.trim(); // Never return a text node of whitespace as the result
+        template.innerHTML = html;
+        return template.content.firstChild;
+    }
+
+    setElement(elm) {
+        //set element field
+        this.element = elm;
+
+        //set id
+        this.element.id = this.id;
+
+        //sync sizes
+        this.top = this.element.clientTop;
+        this.left = this.element.clientLeft;
+        this.right = this.element.clientWidth + this.left;
+        this.bottom = this.element.clientHeight + this.top;
+    }
+
+    appendChild(elm) {
+        this.element.appendChild(elm);
+    }
+
+    setAll(top, right, bottom, left) {
+        this.top = top;
+        this.element.style.top = top + 'px';
+
+        this.right = right;
+        this.element.style.right = right + 'px';
+
+        this.bottom = bottom;
+        this.element.style.bottom = bottom + 'px';
+
+        this.left = left;
+        this.element.style.left = left + 'px';
+
+        this.element.style.width = this.getWidth() + 'px';
+        this.element.style.height = this.getHeight() + 'px';
+
+        return this;
+    }
+
+    setTop(top) {
+        this.top = top;
+        this.element.style.top = top + 'px';
+        this.element.style.height = this.getHeight() + 'px';
+        return this;
+    }
+
+    setRight(right) {
+        this.right = right;
+        this.element.style.right = right + 'px';
+        this.element.style.width = this.getWidth() + 'px';
+        return this;
+    }
+
+    setBottom(bottom) {
+        this.bottom = bottom;
+        this.element.style.bottom = bottom + 'px';
+        this.element.style.height = this.getHeight() + 'px';
+        return this;
+    }
+
+    setLeft(left) {
+        this.left = left;
+        this.element.style.left = left + 'px';
+        this.element.style.width = this.getWidth() + 'px';
+        return this;
+    }
+
+    getWidth() {
+        return this.right - this.left;
+    }
+
+    getHeight() {
+        return this.bottom - this.top;
+    }
+
+    intercept(x, y, offset = 0) {
+        return x <= this.right - offset && x >= this.left + offset && y <= this.bottom - offset && y >= this.top + offset;
+    }
+}
+
 class LayoutManager extends Container {
     frames = [];
     frmContainerElm = null;
+    listener;
 
     constructor(element) {
         super();
@@ -544,16 +534,28 @@ class LayoutManager extends Container {
         this.appendChild(this.frmContainerElm);
     }
 
+    setElement(elm) {
+        super.setElement(elm);
+
+        for (let attr of elm.attributes) {
+            if (attr.name === 'menu-handler') {
+                let fn = window[attr.value];
+                if (typeof fn === 'function')
+                    this.listener = fn;
+            }
+        }
+    }
+
     insertFrame(frame) {
         this.frames[frame.id] = frame;
         this.frmContainerElm.appendChild(frame.element);
-        EventBroadcaster.registerMouseDownEventForFrameBorder(frame);
+        EventBroadcaster.registerMouseEventsForFrameBorder(frame);
     }
 
     removeFrame(frame) {
         delete this.frames[frame.id];
         this.frmContainerElm.removeChild(frame.element);
-        EventBroadcaster.unregisterMouseDownEventForFrameBorder(frame);
+        EventBroadcaster.unregisterMouseEventsForFrameBorder(frame);
     }
 
     findFrameByMousePos(cursorX, cursorY) {
@@ -582,13 +584,11 @@ class Frame extends Container {
         this.container = findNearestNode(false, this.element, elm => elm.className === 'container');
         this.footer = findNearestNode(false, this.element, elm => elm.className.search(/\bfooter\b/g) >= 0);
         this.removeContent();
-
-        this.appendContent(this.htmlToElement("<div id=\"heyMan\"><span style='font-size: 8px'>" + this.id + "</span></div>"));
     }
 
     appendContent(element) {
         this.container.appendChild(element);
-        this.#updateContainerBg();
+        this.updateContainerBg();
     }
 
     removeContent(elm) {
@@ -599,7 +599,7 @@ class Frame extends Container {
         } else {
             this.container.removeChild(elm);
         }
-        this.#updateContainerBg();
+        this.updateContainerBg();
     }
 
     setFooter(element) {
@@ -619,7 +619,7 @@ class Frame extends Container {
 
     }
 
-    #updateContainerBg() {
+    updateContainerBg() {
         if (this.container.children.length > 0) {
             removeClassStyle(this.container, 'empty');
         } else {
@@ -760,7 +760,7 @@ class FrmVMoveController extends Controller {
 class FrmMergeController extends Controller {
     hostFrame;
     guestFrame;
-    #isPermitted;
+    isPermitted;
     arrowElement;
 
     constructor(hostFrame, guestFrame) {
@@ -770,22 +770,22 @@ class FrmMergeController extends Controller {
     }
 
     error(e) {
-        this.#cleanUp();
+        this.cleanUp();
     }
 
     complete() {
-        this.#cleanUp();
-        if (this.#isPermitted === true) {
+        this.cleanUp();
+        if (this.isPermitted === true) {
             this.executeMerge();
         }
     }
 
     next(x, y) {
-        if (this.#isPermitted === true) {
+        if (this.isPermitted === true) {
             if (this.guestFrame.intercept(x, y, frmGap)) {
-                this.#prepareSecondViewForMerge();
+                this.prepareSecondViewForMerge();
             } else {
-                this.#resetSecondView();
+                this.resetSecondView();
             }
             return true;
         }
@@ -793,42 +793,42 @@ class FrmMergeController extends Controller {
     }
 
     init() {
-        this.#isPermitted = this.#isMergePermitted();
-        if (this.#isPermitted === false) {
+        this.isPermitted = this.isMergePermitted();
+        if (this.isPermitted === false) {
             setCursor('no-drop');
         } else {
             this.arrowElement = this.guestFrame.htmlToElement(this.getFooterHtml());
-            this.#prepareSecondViewForMerge();
+            this.prepareSecondViewForMerge();
         }
     }
 
-    #prepareSecondViewForMerge() {
+    prepareSecondViewForMerge() {
         this.guestFrame.setFooter(this.arrowElement);
         this.updateCursor();
     }
 
-    #cleanUp() {
+    cleanUp() {
         setCursor('auto');
         this.hostFrame.clearFooter();
         if (this.guestFrame != null)
             this.guestFrame.clearFooter();
     }
 
-    #resetSecondView() {
+    resetSecondView() {
         setCursor('no-drop');
         if (this.guestFrame.footer.children.length > 0)
             this.guestFrame.clearFooter(this.arrowElement);
     }
 
-    static #getBoundaries(value1, value2) {
+    static getBoundaries(value1, value2) {
         let a = 4 * frmGap;
         return [value1 - a, value1 + a, value2 - a, value2 + a];
     }
 
-    #isMergePermitted() {
+    isMergePermitted() {
         if (this.guestFrame != null) {
             let edges = this.getOppositeEdges();
-            let boundaries = FrmMergeController.#getBoundaries(this.hostFrame[edges[0]], this.hostFrame[edges[1]]);
+            let boundaries = FrmMergeController.getBoundaries(this.hostFrame[edges[0]], this.hostFrame[edges[1]]);
             return this.guestFrame[edges[0]] >= boundaries[0] && this.guestFrame[edges[0]] <= boundaries[1]
                 && this.guestFrame[edges[1]] >= boundaries[2] && this.guestFrame[edges[1]] <= boundaries[3];
         }
