@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Binary Space Partitioning Sample</title>
+    <title>How to resize Binary Space Partitioning layout manager</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="">
@@ -13,30 +13,24 @@
 
 </head>
 <body>
-<span>width:</span><input type="text" id="right"><br>
-<span>height:</span><input type="text" id="bottom"><br>
+<span>width:</span><input type="text" id="width"><br>
+<span>height:</span><input type="text" id="height"><br>
 <button id="btn" onclick="doIt()">Do it</button>
 <br>
-<div style="position: relative;width: 1000px;height: 1000px">
-    <div class="bspLayoutManager" menu-handler="doSomeThing" id="1234"/>
+<div style="position: relative;width: 800px;height: 600px">
+    <div class="bspLayoutManager" ctx-handler="doSomeThing" id="1234"/>
 </div>
 
 <script>
     let w = document.querySelector('#width');
     let h = document.querySelector('#height');
 
-    setTimeout(assignValue, 1000);
-
     function doSomeThing(frameAdr, anchorElement) {
         BspLayoutManagerController.appendContent(frameAdr, htmlToElement('<div><span>This is a simple text</span></div>'));
     }
 
-    function htmlToElement(html) {
-        let template = document.createElement('template');
-        html = html.trim(); // Never return a text node of whitespace as the result
-        template.innerHTML = html;
-        return template.content.firstChild;
-    }
+    //to get notified just after view loading finished
+    BspLayoutManagerController.onLoadFinished = assignValue;
 
     function assignValue() {
         let lm = BspLayoutManagerController.getLayoutManagerById('1234');
@@ -48,6 +42,13 @@
         let lmc = BspLayoutManagerController.getLayoutManagerById('1234').getControllerInstance();
         lmc.setWidth(Number(w.value));
         lmc.setHeight(h.value);
+    }
+
+    function htmlToElement(html) {
+        let template = document.createElement('template');
+        html = html.trim();
+        template.innerHTML = html;
+        return template.content.firstChild;
     }
 </script>
 

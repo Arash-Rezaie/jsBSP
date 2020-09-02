@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>How to use Binary Space Partitioning layout manager</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="Arash Rezaie">
+
+    <script type="text/javascript" src="scripts/bsp.js"></script>
+
+    <link type="text/css" rel="stylesheet" href="styles/bsp-styles.css">
+
+</head>
+<body>
+<div class="bspLayoutManager" ctx-handler="doSomeThing" id="1234"/>
+
+<script>
+    function doSomeThing(frameAdr, anchorElement) {
+        BspLayoutManagerController.appendContent(frameAdr, htmlToElement('<div><span>This is a simple text</span></div>'));
+
+        // to remove an element from the view
+        // BspLayoutManagerController.removeContent(frameAdr,element);
+    }
+
+    function htmlToElement(html) {
+        let template = document.createElement('template');
+        html = html.trim();
+        template.innerHTML = html;
+        return template.content.firstChild;
+    }
+</script>
+
+</body>
+</html>
+

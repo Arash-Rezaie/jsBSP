@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>How to store and restore layout</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="Arash Rezaie">
+
+    <script type="text/javascript" src="scripts/bsp.js"></script>
+
+    <link type="text/css" rel="stylesheet" href="styles/bsp-styles.css">
+
+</head>
+<body>
+<textarea id="txt" style="width: 300px;height: 200px"></textarea><br>
+<button id="btnGetJson" onclick="getJson()">Read Json</button>
+<button id="btnLoadJson" onclick="loadJson()">Load Json</button>
+<br>
+<div style="position: relative;width: 800px;height: 600px">
+    <div class="bspLayoutManager" ctx-handler="doSomeThing" id="1234"/>
+</div>
+
+<script>
+    let txt = document.querySelector('#txt');
+
+    function doSomeThing(frameAdr, anchorElement) {
+        BspLayoutManagerController.appendContent(frameAdr, htmlToElement('<div><span>This is a simple text</span></div>'));
+    }
+
+    function htmlToElement(html) {
+        let template = document.createElement('template');
+        html = html.trim();
+        template.innerHTML = html;
+        return template.content.firstChild;
+    }
+
+    function getJson() {
+        txt.value = JSON.stringify(BspLayoutManagerController.getLayoutManagerById('1234').getControllerInstance().getConfigurationObj());
+    }
+
+    function loadJson() {
+        BspLayoutManagerController.getLayoutManagerById('1234').getControllerInstance().loadFromConfigurationObj(JSON.parse(txt.value));
+    }
+</script>
+
+</body>
+</html>
+

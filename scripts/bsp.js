@@ -47,6 +47,7 @@ class BspLayoutManagerController {
     bottomFrames;
 
     static bspLayouts = Array();
+    static onLoadFinished;
 
     constructor(layoutManager) {
         this.layoutManager = layoutManager;
@@ -113,6 +114,8 @@ class BspLayoutManagerController {
             BspLayoutManagerController.bspLayouts[lm.id] = lm;
         }
         EventBroadcaster.initEventBroadcaster();
+        if (BspLayoutManagerController.onLoadFinished != null)
+            BspLayoutManagerController.onLoadFinished();
     }
 
     static appendContent(frameAdr, element) {
@@ -143,6 +146,45 @@ class BspLayoutManagerController {
 
     static getLayoutManagerById(id) {
         return BspLayoutManagerController.bspLayouts[id];
+    }
+
+    getConfigurationObj() {
+        let lm = this.layoutManager;
+        let obj = {
+            id: lm.id,
+            top: lm.top,
+            right: lm.right,
+            bottom: lm.bottom,
+            left: lm.left,
+            frames: []
+
+        };
+        for (let k in lm.frames) {
+            let f = lm.frames[k];
+            obj.frames.push({
+                id: f.id,
+                top: f.top,
+                right: f.right,
+                bottom: f.bottom,
+                left: f.left,
+            });
+        }
+        return obj;
+    }
+
+    loadFromConfigurationObj(confObj) {
+        let lm = this.layoutManager;
+        for (let k in lm.frames)
+            lm.removeFrame(lm.frames[k]);
+        lm.id = confObj.id;
+        lm.setTop(confObj.top);
+        lm.setRight(confObj.right);
+        lm.setBottom(confObj.bottom);
+        lm.setLeft(confObj.left);
+
+        for (let f of confObj.frames) {
+            lm.insertFrame(new Frame(f.id).setAll(f.top, f.right, f.bottom, f.left));
+        }
     }
 }
 
@@ -229,10 +271,10 @@ class EventBroadcaster {
 
     static initBorderController(e, edge) {
         let a = 3 * dFrmGap;
+        EventBroadcaster.loadTargetLayoutManager(e);
         if (e.clientX > a && e.clientX < EventBroadcaster.activeLayoutManager.right - a &&
             e.clientY > a && e.clientY < EventBroadcaster.activeLayoutManager.bottom - a) {
             e.preventDefault ? e.preventDefault() : e.returnValue = false;
-            EventBroadcaster.loadTargetLayoutManager(e);
             EventBroadcaster.activeMouseEventController = new FrmBorderController(EventBroadcaster.activeLayoutManager.frames[e.target.id], edge);
             EventBroadcaster.registerMouseMoveEvent();
         }
@@ -489,8 +531,8 @@ class Container {
     bottom;
     left;
 
-    constructor() {
-        this.id = this.uuid();
+    constructor(id = null) {
+        this.id = id;
     }
 
     uuid() {
@@ -515,9 +557,12 @@ class Container {
         this.element = elm;
 
         //set id
-        if (this.element.id != null && this.element.id.length > 0) {
+        if (this.id != null) {
+            this.element.id = this.id;
+        } else if (this.element.id != null && this.element.id.length > 0) {
             this.id = this.element.id;
         } else {
+            this.id = this.uuid();
             this.element.id = this.id;
         }
 
@@ -609,7 +654,7 @@ class LayoutManager extends Container {
         super.setElement(elm);
 
         for (let attr of elm.attributes) {
-            if (attr.name === 'menu-handler') {
+            if (attr.name === 'ctx-handler') {
                 let fn = window[attr.value];
                 if (typeof fn === 'function')
                     this.listener = fn;
