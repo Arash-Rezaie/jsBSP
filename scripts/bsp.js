@@ -24,8 +24,11 @@ function findNearestNode(lookUpside, startElm, checker) {
     return null;
 }
 
+let lastCursor = '';
+
 function setCursor(cursor) {
     document.body.style.cursor = cursor;
+    lastCursor = cursor;
 }
 
 function removeClassStyle(element, clsName) {
@@ -882,6 +885,7 @@ class FrmMergeController extends Controller {
     guestFrame;
     isPermitted;
     arrowElement;
+    state = 0;//0: no process yet, 1: the second view is prepared, 2:the second view is in reset state
 
     constructor(hostFrame, guestFrame) {
         super();
@@ -895,7 +899,7 @@ class FrmMergeController extends Controller {
 
     complete() {
         this.cleanUp();
-        if (this.isPermitted === true) {
+        if (this.isPermitted === true && this.state === 1) {
             this.executeMerge();
         }
     }
@@ -903,9 +907,15 @@ class FrmMergeController extends Controller {
     next(x, y) {
         if (this.isPermitted === true) {
             if (this.guestFrame.intercept(x, y, frmGap)) {
-                this.prepareSecondViewForMerge();
+                if (this.state !== 1) {
+                    this.prepareSecondViewForMerge();
+                    this.state = 1;
+                }
             } else {
-                this.resetSecondView();
+                if (this.state !== 2) {
+                    this.resetSecondView();
+                    this.state = 2;
+                }
             }
             return true;
         }
@@ -936,6 +946,7 @@ class FrmMergeController extends Controller {
 
     resetSecondView() {
         setCursor('no-drop');
+        console.log('resetSecondView');
         if (this.guestFrame.footer.children.length > 0)
             this.guestFrame.clearFooter(this.arrowElement);
     }
@@ -1031,6 +1042,7 @@ class FrmHMergeLeftController extends FrmHMergeController {
     }
 
     updateCursor() {
+        console.log('update cursor');
         setCursor('w-resize');
     }
 
