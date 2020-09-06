@@ -7,7 +7,7 @@ This library is a Binary Space Partitioning layout manager written in JS.<br/>
 Just copy this project into yours.
 
 ### How to use:
-Please notice that id is an important attribute for this library. If you set that, the layout manager will hire that o.w it will generate one. Do not change that after initialization.
+Please notice that id is an important attribute for this library. If you set that, the layout manager will hire that o.w it will generate one. **Do not change that after initialization**. When user right clicks on the frame conrner, ctx-handler will get called.
 
 ```html
 <div class="bspLayoutManager" ctx-handler="doSomeThing"/>
