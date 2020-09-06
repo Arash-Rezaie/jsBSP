@@ -75,7 +75,7 @@ class BspLayoutManagerController {
             for (let f of this.rightFrames)
                 if (this.minRight < f.left)
                     this.minRight = f.left;
-            this.minRight += triggerGap + 8 * frmGap;
+            this.minRight += triggerGap + 10 * frmGap;
         }
         let lr = this.layoutManager.left + value;
         if (lr > this.minRight) {
@@ -96,7 +96,7 @@ class BspLayoutManagerController {
             for (let f of this.bottomFrames)
                 if (this.minBottom < f.top)
                     this.minBottom = f.top;
-            this.minBottom += triggerGap + 8 * frmGap;
+            this.minBottom += triggerGap + 10 * frmGap;
         }
         let lb = this.layoutManager.top + value;
         if (lb > this.minBottom) {
