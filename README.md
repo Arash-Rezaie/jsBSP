@@ -4,7 +4,13 @@ This library is a Binary Space Partitioning layout manager written in JS.<br/>
 ![How it works](https://github.com/Arash-Rezaie/jsBSP/blob/master/images/layout-manager-tutorial.png?raw=true)
 
 ### Installation
-Just copy this project into yours.
+```git
+git clone https://github.com/Arash-Rezaie/jsBSP.git
+```
+```html
+<script type="text/javascript" src="[what-ever]/bsp.js"></script>
+<link type="text/css" rel="stylesheet" href="[what-ever]/bsp-styles.css">
+```
 
 ### How to use:
 Please notice that id is an important attribute for this library. If you set that, the layout manager will hire that o.w it will generate one. **Do not change that after initialization**. When user right clicks on the frame conrner, ctx-handler will get called.
