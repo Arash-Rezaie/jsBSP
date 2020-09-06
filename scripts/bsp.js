@@ -2,6 +2,7 @@ cssInteriorGap = 1;
 triggerGap = 40;
 frmGap = 1;
 dFrmGap = 2 * frmGap;
+ddFrmGap = 2 * dFrmGap;
 
 function findNearestNode(lookUpside, startElm, checker) {
     let tmp = startElm;
@@ -205,7 +206,7 @@ class EventBroadcaster {
     }
 
     static getHandlerElementByFrame(frame) {
-        return findNearestNode(false, frame, elm => elm.className === 'handler');
+        return findNearestNode(false, frame, elm => elm.id === 'frmHandler');
     }
 
     static registerMouseEventsForFrameBorder(frame) {
@@ -243,7 +244,7 @@ class EventBroadcaster {
         try {
             if (e.target.className === 'frame') {
                 EventBroadcaster.onFrmBorderMouseDownController(e);
-            } else if (e.target.className === 'handler') {
+            } else if (e.target.id === 'frmHandler') {
                 EventBroadcaster.onFrmIndicatorMouseDownController(e);
             }
         } catch (ex) {
@@ -702,7 +703,10 @@ class Frame extends Container {
 
     loadElement() {
         this.setElement(this.htmlToElement(
-            '<div class="frame"><img src="images/frame-handler.png" class="handler"><div class="container"></div><div class="footer invisible"></div></div>'));
+            '<div class="frame"><svg class="handler">' +
+            '<polyline stroke-width="1px" id="frmHandler" points="0 0 12 0 0 12 0 0" fill="#00000000"/>' +
+            '<path stroke="#3A3A3A" stroke-width="1px" id="frmHandler" d="m3 0 l-3 3 m0 3 l6 -6 m3 0 l-9 9 m0 3 l12 -12"/></svg>' +
+            '<div class="container"></div><div class="footer invisible"></div></div>'));
 
         this.container = findNearestNode(false, this.element, elm => elm.className === 'container');
         this.footer = findNearestNode(false, this.element, elm => elm.className.search(/\bfooter\b/g) >= 0);
@@ -859,7 +863,7 @@ class FrmHMoveController extends Controller {
     }
 
     next(x, y) {
-        this.edgeTransporter.set(x);
+        this.edgeTransporter.set(x - ddFrmGap);
     }
 }
 
@@ -873,7 +877,7 @@ class FrmVMoveController extends Controller {
     }
 
     next(x, y) {
-        this.edgeTransporter.set(y);
+        this.edgeTransporter.set(y - ddFrmGap);
     }
 }
 
@@ -1139,7 +1143,6 @@ class FrmVMergeDownController extends FrmVMergeController {
                 EventBroadcaster.activeMouseEventController = new FrmVMergeUpController(this.hostFrame, this.guestFrame);
     }
 }
-
 // merge Controllers------------------------------------------
 
 // border Controllers-----------------------------------------
@@ -1156,22 +1159,22 @@ class FrmBorderController extends Controller {
         let edges = {
             top: () => {
                 this.edgeTransporter = new TopEdgeTransporter(frame);
-                this.valueGetter = (x, y) => y;
+                this.valueGetter = (x, y) => y - ddFrmGap;
                 setCursor('row-resize');
             },
             right: () => {
                 this.edgeTransporter = new RightEdgeTransporter(frame);
-                this.valueGetter = (x, y) => x;
+                this.valueGetter = (x, y) => x - ddFrmGap;
                 setCursor('col-resize');
             },
             bottom: () => {
                 this.edgeTransporter = new BottomEdgeTransporter(frame);
-                this.valueGetter = (x, y) => y;
+                this.valueGetter = (x, y) => y - ddFrmGap;
                 setCursor('row-resize');
             },
             left: () => {
                 this.edgeTransporter = new LeftEdgeTransporter(frame);
-                this.valueGetter = (x, y) => x;
+                this.valueGetter = (x, y) => x - ddFrmGap;
                 setCursor('col-resize');
             }
         };
@@ -1182,5 +1185,4 @@ class FrmBorderController extends Controller {
         this.edgeTransporter.set(this.valueGetter(x, y));
     }
 }
-
 // border Controllers-----------------------------------------

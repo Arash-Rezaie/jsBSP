@@ -58,8 +58,11 @@
     height: 12px;
     left: -1px;
     top: -1px;
-    cursor: crosshair;
     z-index: 10;
+}
+
+.bspLayoutManager .frame-container .frame .handler > * {
+    cursor: crosshair;
 }
 
 .bspLayoutManager .frame-container .frame .container {
@@ -80,7 +83,7 @@
 }
 
 .bspLayoutManager .frame-container .frame .container.empty {
-    background: url("../images/empty.9.png") no-repeat center;
+    background: url("../images/empty.png") no-repeat center;
     background-size: auto;
 }
 
