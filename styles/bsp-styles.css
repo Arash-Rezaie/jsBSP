@@ -82,6 +82,11 @@
     scrollbar-width: none; /* Firefox */
 }
 
+/* Hide scrollbar for Chrome, Safari and Opera */
+.bspLayoutManager .frame-container .frame .container::-webkit-scrollbar {
+    display: none;
+}
+
 .bspLayoutManager .frame-container .frame .container.empty {
     background: url("../images/empty.png") no-repeat center;
     background-size: auto;
@@ -150,12 +155,6 @@
 }
 
 .invisible {
-    display: none;
-}
-
-
-/* Hide scrollbar for Chrome, Safari and Opera */
-.bspLayoutManager .frame-container .frame .container::-webkit-scrollbar {
     display: none;
 }
 
