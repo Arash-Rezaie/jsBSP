@@ -1,4 +1,7 @@
 # jsBSP
+
+## This project is just a prototype and is not recommended
+
 This library is a Binary Space Partitioning layout manager written in JS.<br/>
 
 ![How it works](https://github.com/Arash-Rezaie/jsBSP/blob/master/images/layout-manager-tutorial.png?raw=true)
